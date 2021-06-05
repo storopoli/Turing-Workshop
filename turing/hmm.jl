@@ -4,19 +4,15 @@
 # ArXiv:1806.10639 [q-Bio, Stat].
 # http://arxiv.org/abs/1806.10639
 
-using CSV
-using DataFrames
 using Distributions
-# using JLSO
+using JLSO
 using LinearAlgebra
 using Random
 using StatsBase
 using Turing
-# using Dates: now
+using Dates:now
 
 Random.seed!(1)
-
-# df = CSV.read("data/hmm.csv", DataFrame)
 
 const N = 2 # Number of States
 
@@ -49,20 +45,17 @@ end
     # Transition Probability Matrix.
     θ = Vector{Vector}(undef, K)
 
-    # State-Dependente Parameters
+    # Priors
     μ ~ filldist(Truncated(TDist(3), 0, Inf), 2)
-
-    # Assign distributions to each element
-    # of the transition matrix and the
-    # state-dependent parameters.
     for i = 1:K
         θ[i] ~ Dirichlet(ones(K) / K)
     end
 
-    # Observe each point of the input.
+    # first observation
     s[1] ~ Categorical(K)
     y[1] ~ Normal(μ[s[1]], 2)
 
+    # looping over observations
     for i = 2:T
         s[i] ~ Categorical(vec(θ[s[i - 1]]))
         y[i] ~ Normal(μ[s[i]], 2)
@@ -72,10 +65,9 @@ end
 sampler = Gibbs(NUTS(1_000, 0.65, :μ, :θ),
                 PG(50, :s))
 
-chain = sample(hmm(y, 2), sampler, 2_000)
-# chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)
+chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)
 
 JLSO.save("turing/hmm_chain.jlso",
           :time => now(),
-          :specs => "sample(hmm(df.y, 2), sampler, MCMCThreads(), 2_000, 4)",
+          :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)",
           :chain => chain)
