@@ -39,14 +39,14 @@ end
 
 
 @model hmm(y, K::Int64; T=length(y)) = begin
-    # state sequence
+    # state sequence in a Libtask.TArray
     s = tzeros(Int, T)
 
     # Transition Probability Matrix.
     θ = Vector{Vector}(undef, K)
 
     # Priors
-    μ ~ filldist(Truncated(TDist(3), 0, Inf), 2)
+    μ ~ filldist(truncated(TDist(3), 0, Inf), 2)
     for i = 1:K
         θ[i] ~ Dirichlet(ones(K) / K)
     end
