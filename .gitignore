@@ -28,3 +28,6 @@ Manifest.toml
 
 # VS Code
 .vscode/
+
+# LaTeX
+*.synctex.gz
