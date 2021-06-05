@@ -7,8 +7,8 @@ using InteractiveUtils
 # ╔═╡ 8902a846-fbb9-42fc-8742-c9c4a84db52c
 begin
 	using DataFrames
+	using DifferentialEquations
 	using Distributions
-	using JLSO
 	using LinearAlgebra
 	using Random
 	using StatsBase
@@ -17,8 +17,6 @@ begin
 	using Plots
 	using PlutoUI
 	using Pkg
-	#Pkg.add("TikzPictures")
-	Random.seed!(1)
 end
 
 # ╔═╡ 5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
@@ -62,6 +60,8 @@ We have several ways to marginalize discrete parameters in HMM:
 1. **Filtering** (a.k.a [Forward Algorithm](https://en.wikipedia.org/wiki/Forward_algorithm)) <---- we'll cover this one
 2. **Smoothing** (a.k.a [Forward-Backward Algorithm](https://en.wikipedia.org/wiki/Forward%E2%80%93backward_algorithm))
 3. **MAP Estimation** (a.k.a [Viterbi Algorithm](https://en.wikipedia.org/wiki/Viterbi_algorithm))
+
+A very good reference is [Damiano, Peterson & Weylandt (2017)](https://github.com/luisdamiano/stancon18)
 
 """
 
@@ -173,6 +173,7 @@ model{
   // Compute the marginal probability over possible sequences
   vector[K] acc;
   vector[K] lp;
+
   // forward algorithm implementation
   for(k in 1:K) // first observation
     lp[k] = normal_lpdf(y[1] | mu[k], 2);
@@ -190,7 +191,7 @@ model{
 
 # ╔═╡ 6db0245b-0461-4db0-9462-7a5f80f7d589
 md"""
-Here's how we would do in Turing
+Here's how we would do in Turing (Sorry too long to run live)
 
 Note the Composite MCMC Sampler
 
@@ -276,25 +277,16 @@ md"""
 # ╔═╡ 31b6d4ec-d057-44ca-875b-0c3257895dd3
 PlutoUI.TableOfContents(aside=true)
 
-# ╔═╡ 3c8a9b24-9863-42bb-974c-6b2f46134567
-# The HMM model takes a while to run so I've pre-ran and loaded as a JLSO file
-begin
-	loaded = JLSO.load("turing/hmm_chain.jlso")
-	hmm_chain = loaded[:chain]
-end
-
-# ╔═╡ 8d2487e9-47c0-4202-abc5-34f5e0a18f74
-sum(S .== quantile(group(hmm_chain, :s))[:, :var"50.0%"])
-
-# ╔═╡ 8c768ea7-01ad-4eea-bdbd-042c58d843aa
-summarystats(cat(group(hmm_chain, :μ), group(hmm_chain, :θ); dims=2))
+# ╔═╡ 4af78efd-d484-4241-9d3c-97cc78e1dbd4
+Random.seed!(1)
 
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
 ## References
 
-Grinsztajn, L., Semenova, E., Margossian, C. C., & Riou, J. (2021). Bayesian workflow for disease transmission modeling in Stan. ArXiv:2006.02985 [q-Bio, Stat]. http://arxiv.org/abs/2006.02985
+Damiano, L., Peterson, B., & Weylandt, M. (2017). A Tutorial on Hidden Markov Models using Stan. https://github.com/luisdamiano/stancon18 (Original work published 2017)
 
+Grinsztajn, L., Semenova, E., Margossian, C. C., & Riou, J. (2021). Bayesian workflow for disease transmission modeling in Stan. ArXiv:2006.02985 [q-Bio, Stat]. http://arxiv.org/abs/2006.02985
 
 Leos-Barajas, V., & Michelot, T. (2018). An Introduction to Animal Movement Modeling with Hidden Markov Models using Stan for Bayesian Inference. ArXiv:1806.10639 [q-Bio, Stat]. http://arxiv.org/abs/1806.10639
 """
@@ -315,8 +307,6 @@ Leos-Barajas, V., & Michelot, T. (2018). An Introduction to Animal Movement Mode
 # ╟─5d3d2abb-85e3-4371-926e-61ff236253f1
 # ╟─247a02e5-8599-43fd-9ee5-32ba8b827477
 # ╟─6db0245b-0461-4db0-9462-7a5f80f7d589
-# ╠═8d2487e9-47c0-4202-abc5-34f5e0a18f74
-# ╠═8c768ea7-01ad-4eea-bdbd-042c58d843aa
 # ╟─9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
 # ╟─9b020402-ea15-4f52-9fff-c70d275b97ac
 # ╟─c81f4877-024f-4dc8-b7ce-e781ab6101f3
@@ -325,5 +315,5 @@ Leos-Barajas, V., & Michelot, T. (2018). An Introduction to Animal Movement Mode
 # ╟─2f907e0d-171e-44c3-a531-5f11da08b3cf
 # ╠═31b6d4ec-d057-44ca-875b-0c3257895dd3
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
-# ╠═3c8a9b24-9863-42bb-974c-6b2f46134567
+# ╠═4af78efd-d484-4241-9d3c-97cc78e1dbd4
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
