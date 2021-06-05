@@ -32,5 +32,5 @@ model{
       tea[i] ~ bernoulli( s[i]*p_drink + (1-s[i])*p_cheat );
       s[i] ~ bernoulli( sigma );
     }
-  }//i
+  }
 }

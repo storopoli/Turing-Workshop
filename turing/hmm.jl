@@ -26,7 +26,7 @@ df = CSV.read("data/tea.csv", DataFrame)
     # probability of tea
     for i in 1:length(tea)
         if s[i] == -1 # ox unobserved
-            tea[i] ~ sigma * Bernoulli(p_drink) + (1 - sigma) * Bernoulli(p_cheat)
+            tea[i] ~ Bernoulli(p_drink * sigma + (1 - sigma) * p_cheat)
         else         # ox observed
             tea[i] ~ Bernoulli(s[i] * p_drink + (1 - s[i]) * p_cheat)
             s[i] ~ Bernoulli(sigma)
@@ -35,7 +35,7 @@ df = CSV.read("data/tea.csv", DataFrame)
 end
 
 sampler = Gibbs(NUTS(1000, 0.65, :p_cheat, :p_drink, :sigma),
-                PG(20, :s))
-chain = sample(hmm(df.tea, df.s), sampler, MCMCThreads(), 2_000, 4)
+                PG(50, :s))
+chain = sample(hmm(df.tea, df.s_obs), sampler, MCMCThreads(), 2_000, 4)
 
 summarystats(chain)
