@@ -1,36 +1,36 @@
-data{
-  int N_children;      // number of children
-  int tea[N_children]; // [0,1] observed drinking tea
-  int s[N_children];   // [0,1,-1] stabled ox
+// Leos-Barajas, V., & Michelot, T. (2018).
+// An Introduction to Animal Movement Modeling with
+// Hidden Markov Models using Stan for Bayesian Inference.
+// ArXiv:1806.10639 [q-Bio, Stat].
+// http://arxiv.org/abs/1806.10639
+
+data {
+  int<lower=1> K; // number of states
+  int<lower=1> T; // length of data set
+  real y[T]; // observations
 }
-parameters{
-  real p_cheat;
-  real p_drink;
-  real sigma;
+parameters {
+  positive_ordered[K] mu; // state-dependent parameters
+  simplex[K] theta[K]; // N x N tpm
 }
 model{
   // priors
-  p_cheat ~ beta(2,2);
-  p_drink ~ beta(2,2);
-  sigma ~ beta(2,2);
+  mu ~ student_t(3, 0, 1);
+  for (k in 1:K)
+    theta[k] ~ dirichlet([0.5, 0.5]);
 
-  // probability of tea
-  for ( i in 1:N_children ) {
-    if ( s[i] == -1 ) {
-      // ox unobserved
-      target += log_mix(
-                  sigma ,
-                  bernoulli_lpmf( tea[i] | p_drink ) ,
-                  bernoulli_lpmf( tea[i] | p_cheat ) );
-      // could also be
-      // target += log_sum_exp(
-      //             log(sigma) + bernoulli_lpmf( tea[i] | p_drink ) ,
-      //             log(1 - sigma) + bernoulli_lpmf( tea[i] | p_cheat ) );
-
-    } else {
-      // ox observed
-      tea[i] ~ bernoulli( s[i]*p_drink + (1-s[i])*p_cheat );
-      s[i] ~ bernoulli( sigma );
+  // Compute the marginal probability over possible sequences
+  vector[K] acc;
+  vector[K] lp;
+  // forward algorithm implementation
+  for(k in 1:K) // first observation
+    lp[k] = normal_lpdf(y[1] | mu[k], 2);
+  for (t in 2:T) {     // looping over observations
+      for (k in 1:K){   // looping over states
+          acc[k] = log_sum_exp(log(theta[k]) + lp) +
+            normal_lpdf(y[t] | mu[k], 2);
+      }
+      lp = acc;
     }
-  }
+  target += log_sum_exp(lp);
 }
