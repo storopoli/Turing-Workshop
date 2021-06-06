@@ -62,12 +62,13 @@ end
     end
 end
 
-sampler = Gibbs(NUTS(1_000, 0.65, :μ, :θ),
+sampler = Gibbs(NUTS(2_000, 0.65, :μ, :θ),
                 PG(50, :s))
 
-chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)
+hmm_chain = sample(hmm(y, 2), sampler, MCMCThreads(), 4_000, 4)
 
 JLSO.save("turing/hmm_chain.jlso",
           :time => now(),
-          :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)",
-          :chain => chain)
+          :sampler => "Gibbs(NUTS(2_000, 0.65, :μ, :θ), PG(50, :s))",
+          :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 4_000, 4)",
+          :seed => 1:chain => hmm_chain)
