@@ -15,11 +15,27 @@ end
 
 # ╔═╡ 8902a846-fbb9-42fc-8742-c9c4a84db52c
 begin
+    import Pkg
+    Pkg.activate(mktempdir())
+    Pkg.add([
+        Pkg.PackageSpec(name="CSV", version="0.8.5"),
+        Pkg.PackageSpec(name="Chain", version="0.4.6"),
+        Pkg.PackageSpec(name="DataFrames", version="1.1.1"),
+        Pkg.PackageSpec(name="DifferentialEquations", version="6.17.1"),
+        Pkg.PackageSpec(name="Distributions", version="0.24.18"),
+		Pkg.PackageSpec(name="LaTeXStrings", version="1.2.1"),
+		Pkg.PackageSpec(name="LazyArrays", version="0.21.5"),
+		Pkg.PackageSpec(name="Plots", version="1.16.2"),
+		Pkg.PackageSpec(name="PlutoUI", version="0.7.9"),
+		Pkg.PackageSpec(name="StatsBase", version="0.33.8"),
+		Pkg.PackageSpec(name="StatsPlots", version="0.14.21"),
+		Pkg.PackageSpec(name="Turing", version="0.16.0"),
+		
+    ])
 	using CSV
 	using DataFrames
 	using DifferentialEquations
 	using Distributions
-	using JLSO
 	using LaTeXStrings
 	using LinearAlgebra
 	using Random
@@ -43,9 +59,14 @@ md"""
 # Turing Workshop
 """
 
+# ╔═╡ dceb8312-230f-4e4b-9285-4e23f219b838
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/bayes-meme.jpg?raw=true", :width => 250, :align=>"center")
+
 # ╔═╡ cda7dc96-d983-4e31-9298-6148205b54b1
 md"""
 A little bit about myself:
+
+$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/profile_pic.jpg?raw=true", :width => 100, :align => "right"))
 
 * **Jose Storopoli**, PhD
 * Associate Professor at **Universidade Nove de Julho** (UNINOVE)
@@ -78,10 +99,10 @@ We are not covering Bayesian stuff, but there are some **awesome books**:
 
 # ╔═╡ 653ec420-8de5-407e-91a9-f045e25a6395
 md"""
-[$(PlutoUI.LocalResource("images/BDA_book.jpg", :width => 100.5*1.5))](https://www.routledge.com/Bayesian-Data-Analysis/Gelman-Carlin-Stern-Dunson-Vehtari-Rubin/p/book/9781439840955)
-[$(PlutoUI.LocalResource("images/SR_book.jpg", :width => 104*1.5))](https://www.routledge.com/Statistical-Rethinking-A-Bayesian-Course-with-Examples-in-R-and-STAN/McElreath/p/book/9780367139919)
-[$(PlutoUI.LocalResource("images/ROS_book.jpg", :width => 118*1.5))](https://www.cambridge.org/fi/academic/subjects/statistics-probability/statistical-theory-and-methods/regression-and-other-stories)
-[$(PlutoUI.LocalResource("images/Bayes_book.jpg", :width => 102*1.5))](https://www.amazon.com/Theory-That-Would-Not-Die/dp/0300188226/)
+[$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/BDA_book.jpg?raw=true", :width => 100.5*1.5))](https://www.routledge.com/Bayesian-Data-Analysis/Gelman-Carlin-Stern-Dunson-Vehtari-Rubin/p/book/9781439840955)
+[$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/SR_book.jpg?raw=true", :width => 104*1.5))](https://www.routledge.com/Statistical-Rethinking-A-Bayesian-Course-with-Examples-in-R-and-STAN/McElreath/p/book/9780367139919)
+[$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/ROS_book.jpg?raw=true", :width => 118*1.5))](https://www.cambridge.org/fi/academic/subjects/statistics-probability/statistical-theory-and-methods/regression-and-other-stories)
+[$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/Bayes_book.jpg?raw=true", :width => 102*1.5))](https://www.amazon.com/Theory-That-Would-Not-Die/dp/0300188226/)
 """
 
 # ╔═╡ 716cea7d-d771-46e9-ad81-687292004009
@@ -97,6 +118,11 @@ md"""
 # ╔═╡ 0484ae7f-bd8a-4615-a760-5c4b2eef9d3f
 md"""
 ## 2. How to Specify a Model? `@model`
+"""
+
+# ╔═╡ 1d467044-bc7d-4df7-bda6-bb8ea6ff0712
+md"""
+To do...
 """
 
 # ╔═╡ 9f6b96a7-033d-4c7d-a853-46a0b5af4675
@@ -126,9 +152,14 @@ It's very important that we check if our **priors make sense**. This is called *
 
 # ╔═╡ fc8e40c3-34a1-4b2e-bd1b-893d7998d359
 md"""
-$(PlutoUI.LocalResource("images/bayesian_workflow.png", :width => 700))
+$(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/bayesian_workflow.png?raw=true", :width => 700))
 
 Based on Gelman et al. (2020b)
+"""
+
+# ╔═╡ fb366eb1-4ab0-4e7a-83ed-d531978c06a0
+md"""
+To do...
 """
 
 # ╔═╡ 5674f7aa-3205-47c7-8367-244c6419ce69
@@ -136,9 +167,19 @@ md"""
 ## 4. How to inspect chains and plot stuff with `MCMCChains.jl`
 """
 
+# ╔═╡ 83cc80c1-d97e-4b82-872e-e5493d2b62ab
+md"""
+To do...
+"""
+
 # ╔═╡ c70ebb70-bd96-44a5-85e9-871b0e478b1a
 md"""
 ## 5. Better tricks to avoid for-loops inside `@model` (`lazyarrays` and `filldist`)
+"""
+
+# ╔═╡ dd5fbb2a-4220-4e47-945a-6870b799c50d
+md"""
+To do...
 """
 
 # ╔═╡ 7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
@@ -146,9 +187,19 @@ md"""
 ## 6. Take me up! Let's get Hierarchical (Hierarchical Models)
 """
 
+# ╔═╡ c64d355f-f5a2-46a5-86f3-2d02da98f305
+md"""
+To do...
+"""
+
 # ╔═╡ 9ebac6ba-d213-4ed8-a1d5-66b841fafa00
 md"""
 ## 7. Crazy Stuff
+"""
+
+# ╔═╡ 45c342fd-b893-46aa-b2ee-7c93e7a1d207
+md"""
+To do...
 """
 
 # ╔═╡ d44c7baa-80d2-4fdb-a2de-35806477dd58
@@ -157,7 +208,7 @@ md"""
 """
 
 # ╔═╡ c1b2d007-1004-42f5-b65c-b4e2e7ff7d8e
-PlutoUI.LocalResource("images/HMM.png", :width => 500)
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/HMM.png?raw=true", :width => 400)
 
 # ╔═╡ f1153918-0748-4400-ae8b-3b59f8c5d755
 md"""
@@ -275,9 +326,9 @@ scatter(y, mc= S, xlabel=L"t", ylabel=L"y", label=false)
 
 # ╔═╡ 5d3d2abb-85e3-4371-926e-61ff236253f1
 md"""
-Here is the `Stan` code (I've simplified from Leos-Barajas & Michelot's original code) 
+Here is the `Stan` code (I've simplified from Leos-Barajas & Michelot's original code) :
 
-Also note that we are using the `log_sum_exp()` trick
+> Also note that we are using the `log_sum_exp()` trick
 """
 
 # ╔═╡ 247a02e5-8599-43fd-9ee5-32ba8b827477
@@ -319,41 +370,43 @@ model{
 
 # ╔═╡ 6db0245b-0461-4db0-9462-7a5f80f7d589
 md"""
-Here's how we would do in `Turing` (Sorry too long to run live)
+Here's how we would do in `Turing`
 
 > Note the Composite MCMC Sampler 
-
-```julia
-@model hmm(y, K::Int64; T=length(y)) = begin
-    # state sequence in a Libtask.TArray
-    s = tzeros(Int, T)
-
-    # Transition Probability Matrix.
-    θ = Vector{Vector}(undef, K)
-
-    # Priors
-    μ ~ filldist(truncated(TDist(3), 0, Inf), 2)
-    for i = 1:K
-        θ[i] ~ Dirichlet(ones(K) / K)
-    end
-
-    # first observation
-    s[1] ~ Categorical(K)
-    y[1] ~ Normal(μ[s[1]], 2)
-
-    # looping over observations
-    for i = 2:T
-        s[i] ~ Categorical(vec(θ[s[i - 1]]))
-        y[i] ~ Normal(μ[s[i]], 2)
-    end
-end
-
-sampler = Gibbs(NUTS(1_000, 0.65, :μ, :θ),
-                PG(50, :s))
-
-hmm_chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 4)
-```
 """
+
+# ╔═╡ b5a79826-151e-416e-b0a2-1a58eec9196c
+begin
+	@model hmm(y, K::Int64; T=length(y)) = begin
+		# state sequence in a Libtask.TArray
+		s = tzeros(Int, T)
+
+		# Transition Probability Matrix.
+		θ = Vector{Vector}(undef, K)
+
+		# Priors
+		μ ~ filldist(truncated(TDist(3), 0, 6), 2)
+		for i = 1:K
+			θ[i] ~ Dirichlet(ones(K) / K)
+		end
+
+		# first observation
+		s[1] ~ Categorical(K)
+		y[1] ~ Normal(μ[s[1]], 2)
+
+		# looping over observations
+		for i = 2:T
+			s[i] ~ Categorical(vec(θ[s[i - 1]]))
+			y[i] ~ Normal(μ[s[i]], 2)
+		end
+	end
+
+	sampler = Gibbs(NUTS(10, 0.65, :μ, :θ),
+					PG(1, :s))
+
+	hmm_chain = sample(hmm(y, 2), sampler, 50)
+	summarystats(hmm_chain[:, 1:6, :]) #only μ and θ
+end
 
 # ╔═╡ 9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
 md"""
@@ -361,7 +414,7 @@ md"""
 """
 
 # ╔═╡ 9b020402-ea15-4f52-9fff-c70d275b97ac
-PlutoUI.LocalResource("images/SIR.png", :width => 500)
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/SIR.png?raw=true", :width => 500)
 
 # ╔═╡ c81f4877-024f-4dc8-b7ce-e781ab6101f3
 md"""
@@ -440,6 +493,7 @@ end
 
 # ╔═╡ 646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 begin
+	Plots.gr()
 	prob = ODEProblem(sir_ode!, u, tspan, p)
 	sol = solve(prob, Tsit5(), saveat=1.0)
 	plot(sol, dpi=300, label=[L"S" L"I" L"R"], lw=3)
@@ -460,11 +514,12 @@ The data are freely available in the R package `{outbreaks}`, maintained as part
 
 # ╔═╡ 680f104e-80b4-443f-b4bc-532df758c162
 md"""
-Here's how we would do in `Turing` (Sorry too long to run live)
+Here's how we would do in `Turing`:
 
 > Note the ODE system inside `@model`
+"""
 
-```julia
+# ╔═╡ ddfc38fc-b47d-4ea5-847a-e9cbee3aa0a1
 @model sir(cases, I₀) = begin
   # Calculate number of timepoints
   l = length(cases)
@@ -473,13 +528,13 @@ Here's how we would do in `Turing` (Sorry too long to run live)
   R₀ = 0
 
   # Priors
-  β ~ TruncatedNormal(2.0, 1.0,  0, Inf)
-  γ ~ TruncatedNormal(0.4, 0.5,  0, Inf)
-  ϕ⁻ ~ Exponential(5)
+  β ~ TruncatedNormal(2, 1,  1e-6, 10)     # using 10 instead of `Inf` because numerical issues arose
+  γ ~ TruncatedNormal(0.4, 0.5,  1e-6, 10) # using 10 instead of `Inf` because numerical issues arose
+  ϕ⁻ ~ truncated(Exponential(5), 1, 20)
   ϕ = 1.0 / ϕ⁻
 
   # ODE Stuff
-  u = [S₀, I₀, R₀]
+  u = float.([S₀, I₀, R₀])
   p = [β, γ]
   tspan = (0.0, float(l))
   prob = ODEProblem(sir_ode!,
@@ -493,11 +548,10 @@ Here's how we would do in `Turing` (Sorry too long to run live)
 
   # Likelihood
   for i in 1:l
+    solᵢ[i] = max(1e-6, solᵢ[i]) # numerical issues arose
     cases[i] ~ NegativeBinomial(solᵢ[i], ϕ)
   end
 end
-```
-"""
 
 # ╔═╡ 7f1fd9b4-517a-4fec-89bb-4d696dadbc3d
 md"""
@@ -573,6 +627,7 @@ Below there is is the Neal's Funnel reparameterized as standard normal:
 
 # ╔═╡ 438d437e-7b00-4a13-8f8a-87fdc332a190
 begin
+	Plots.plotly()
 	kernel_reparameterized(x, y) = logpdf(Normal(), x)
 	surface(x, x,  kernel_reparameterized, xlab="x", ylab="y", zlab="log(PDF)")
 end
@@ -580,6 +635,11 @@ end
 # ╔═╡ 26265a91-2c8e-46d8-9a87-a2d097e7433a
 md"""
 ### 8.2 $\mathbf{QR}$ decomposition
+"""
+
+# ╔═╡ 2eeb402e-c5f9-449c-af19-ff8f2e6c7246
+md"""
+To do...
 """
 
 # ╔═╡ 2f907e0d-171e-44c3-a531-5f11da08b3cf
@@ -601,21 +661,21 @@ Random.seed!(1)
 # ╔═╡ a07277d8-1270-411d-bd33-2eaacac6a7d3
 begin
 	# Boarding School SIR
-	boarding_school = CSV.read("data/influenza_england_1978_school.csv", DataFrame)
-end
-
-# ╔═╡ bd4405f3-ee85-4f21-bbea-a82072d9bea9
-begin
-	# Some chains I've pre-ran because it would take a lot of time!
-	loaded_sir = JLSO.load("turing/sir_chain.jlso")
-	sir_chain = loaded_sir[:chain]
+	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame)
+	cases = boarding_school.in_bed
 end
 
 # ╔═╡ ee2616ca-2602-4823-9cfb-123b958701c4
-summarystats(sir_chain[:, 1:2, :]) # only β and γ
+begin
+	sir_chain = sample(sir(cases, 1), NUTS(1_000, 0.65), MCMCThreads(), 2_000, 2)
+	summarystats(sir_chain[:, 1:2, :]) # only β and γ
+end
 
 # ╔═╡ 7a62c034-3709-483a-a663-7fe5e09cb773
-plot(sir_chain[:, 1:2, :]) # only β and γ
+begin
+	Plots.gr()
+	plot(sir_chain[:, 1:2, :]) # only β and γ
+end
 
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
@@ -651,6 +711,7 @@ md"""
 
 # ╔═╡ Cell order:
 # ╟─5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
+# ╟─dceb8312-230f-4e4b-9285-4e23f219b838
 # ╟─cda7dc96-d983-4e31-9298-6148205b54b1
 # ╟─1436305e-37d8-44f1-88d6-4de838580360
 # ╟─08f508c4-233a-4bba-b313-b04c1d6c4a4c
@@ -659,16 +720,22 @@ md"""
 # ╟─716cea7d-d771-46e9-ad81-687292004009
 # ╟─cb808fd4-6eb2-457e-afa4-58ae1be09aec
 # ╟─0484ae7f-bd8a-4615-a760-5c4b2eef9d3f
+# ╠═1d467044-bc7d-4df7-bda6-bb8ea6ff0712
 # ╟─9f6b96a7-033d-4c7d-a853-46a0b5af4675
 # ╟─e6365296-cd68-430e-99c5-fb571f39aad5
 # ╠═927ad0a4-ba68-45a6-9bde-561915503e48
 # ╟─2ab3c34a-1cfc-4d20-becc-5902d08d03e0
 # ╟─924fcad9-75c1-4707-90ef-3e36947d64fe
 # ╟─fc8e40c3-34a1-4b2e-bd1b-893d7998d359
+# ╠═fb366eb1-4ab0-4e7a-83ed-d531978c06a0
 # ╟─5674f7aa-3205-47c7-8367-244c6419ce69
+# ╠═83cc80c1-d97e-4b82-872e-e5493d2b62ab
 # ╟─c70ebb70-bd96-44a5-85e9-871b0e478b1a
+# ╠═dd5fbb2a-4220-4e47-945a-6870b799c50d
 # ╟─7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
+# ╠═c64d355f-f5a2-46a5-86f3-2d02da98f305
 # ╟─9ebac6ba-d213-4ed8-a1d5-66b841fafa00
+# ╠═45c342fd-b893-46aa-b2ee-7c93e7a1d207
 # ╟─d44c7baa-80d2-4fdb-a2de-35806477dd58
 # ╟─c1b2d007-1004-42f5-b65c-b4e2e7ff7d8e
 # ╟─f1153918-0748-4400-ae8b-3b59f8c5d755
@@ -683,6 +750,7 @@ md"""
 # ╟─5d3d2abb-85e3-4371-926e-61ff236253f1
 # ╟─247a02e5-8599-43fd-9ee5-32ba8b827477
 # ╟─6db0245b-0461-4db0-9462-7a5f80f7d589
+# ╠═b5a79826-151e-416e-b0a2-1a58eec9196c
 # ╟─9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
 # ╟─9b020402-ea15-4f52-9fff-c70d275b97ac
 # ╟─c81f4877-024f-4dc8-b7ce-e781ab6101f3
@@ -694,6 +762,7 @@ md"""
 # ╠═646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 # ╟─5c017766-445d-4f4b-98f1-ae63e78ec34b
 # ╟─680f104e-80b4-443f-b4bc-532df758c162
+# ╠═ddfc38fc-b47d-4ea5-847a-e9cbee3aa0a1
 # ╠═ee2616ca-2602-4823-9cfb-123b958701c4
 # ╠═7a62c034-3709-483a-a663-7fe5e09cb773
 # ╟─7f1fd9b4-517a-4fec-89bb-4d696dadbc3d
@@ -705,13 +774,13 @@ md"""
 # ╟─b57195f9-c2a1-4676-96f9-faee84f7fc26
 # ╟─438d437e-7b00-4a13-8f8a-87fdc332a190
 # ╟─26265a91-2c8e-46d8-9a87-a2d097e7433a
+# ╠═2eeb402e-c5f9-449c-af19-ff8f2e6c7246
 # ╟─2f907e0d-171e-44c3-a531-5f11da08b3cf
 # ╠═31b6d4ec-d057-44ca-875b-0c3257895dd3
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
 # ╟─b75f8003-85d4-4bb7-96cf-b6d7881b0e7c
 # ╠═4af78efd-d484-4241-9d3c-97cc78e1dbd4
 # ╠═a07277d8-1270-411d-bd33-2eaacac6a7d3
-# ╠═bd4405f3-ee85-4f21-bbea-a82072d9bea9
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 # ╟─634c9cc1-5a93-42b4-bf51-17dadfe488d6
 # ╟─31161289-1d4c-46ba-8bd9-e687fb7da29e

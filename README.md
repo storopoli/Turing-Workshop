@@ -57,19 +57,18 @@ I would like to thank [Stuttgart Julia Programming Language Meetup Group](https:
 
 The content is licensed under a very permissive Creative Commons license (CC BY-SA). You are mostly welcome to contribute with [issues](https://www.github.com/storopoli/Turing-Workshop/issues) and [pull requests](https://github.com/storopoli/Turing-Workshop/pulls). My hope is to have **more people into Bayesian statistics**. The content is aimed towards social scientists and PhD candidates in social sciences. I chose to provide an **intuitive approach** rather than focusing on rigorous mathematical formulations. I've made it to be how I would have liked to be introduced to Bayesian statistics.
 
+Just access [storopoli.io/Turing-Workshop](https://storopoli.io/Turing-Workshop) and click on `Edit or run this notebook` and then click on `binder`!
+
 To configure a local environment:
 
 1. Download and install [Julia](https://www.julialang.org/downloads/)
 2.  Clone the repository from GitHub:
     `git clone https://github.com/storopoli/Turing-Workshop.git`
 3.  Access the directory: `cd Turing-Workshop`
-4.  Activate the environment by typing in the Julia REPL:
+4.  Run the Pluto Notebook by typing in the Julia REPL:
     ```julia
-    using Pkg
-    Pkg.activate(".")
-    Pkg.instantiate()
     using Pluto
-    Pluto.run("Turing_Workshop.jl")
+    Pluto.run(notebook="Turing_Workshop.jl")
     ```
 
 ## What about other Turing tutorials?
