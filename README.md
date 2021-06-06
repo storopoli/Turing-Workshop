@@ -53,7 +53,7 @@ José Eduardo Storopoli, PhD - [*Lattes* CV](http://lattes.cnpq.br/2281909649311
 
 ## How to use the content?
 
-The content is licensed under a very permissive Creative Commons license (CC BY-SA). You are mostly welcome to contribute with [issues](https://www.github.com/storopoli/Bayesian-Julia/issues) and [pull requests](https://github.com/storopoli/Bayesian-Julia/pulls). My hope is to have **more people into Bayesian statistics**. The content is aimed towards social scientists and PhD candidates in social sciences. I chose to provide an **intuitive approach** rather than focusing on rigorous mathematical formulations. I've made it to be how I would have liked to be introduced to Bayesian statistics.
+The content is licensed under a very permissive Creative Commons license (CC BY-SA). You are mostly welcome to contribute with [issues](https://www.github.com/storopoli/Turing-Workshop/issues) and [pull requests](https://github.com/storopoli/Turing-Workshop/pulls). My hope is to have **more people into Bayesian statistics**. The content is aimed towards social scientists and PhD candidates in social sciences. I chose to provide an **intuitive approach** rather than focusing on rigorous mathematical formulations. I've made it to be how I would have liked to be introduced to Bayesian statistics.
 
 To configure a local environment:
 
