@@ -12,7 +12,8 @@ using StatsBase
 using Turing
 using Dates:now
 
-Random.seed!(1)
+const seed = 1
+Random.seed!(seed)
 
 const N = 2 # Number of States
 
@@ -62,13 +63,16 @@ end
     end
 end
 
-sampler = Gibbs(NUTS(2_000, 0.65, :μ, :θ),
+sampler = Gibbs(NUTS(1_000, 0.65, :μ, :θ),
                 PG(50, :s))
 
-hmm_chain = sample(hmm(y, 2), sampler, MCMCThreads(), 4_000, 4)
+hmm_chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 6)
+
+# plot(hmm_chain)
 
 JLSO.save("turing/hmm_chain.jlso",
           :time => now(),
           :sampler => "Gibbs(NUTS(2_000, 0.65, :μ, :θ), PG(50, :s))",
           :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 4_000, 4)",
-          :seed => 1:chain => hmm_chain)
+          :seed => seed,
+          :chain => hmm_chain)
