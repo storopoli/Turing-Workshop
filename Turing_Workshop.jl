@@ -288,13 +288,6 @@ md"""
 #### Random Data
 """
 
-# ╔═╡ a71320a7-ece3-404f-a582-a8f400f98251
-md"""
-μ₁ = $(@bind μ₁ Slider(1:1:10, default = 1, show_value=true))
-
-μ₂ = $(@bind μ₂ Slider(1:1:10, default = 5, show_value=true))
-"""
-
 # ╔═╡ 58c5460f-c7f4-4a0a-9e18-71b9580e9148
 begin
 	const N = 2 # Number of States
@@ -304,7 +297,7 @@ begin
 	# initial distribution set to the stationary distribution
 	const δ = (Diagonal(ones(N)) - Γ .+ 1) \ ones(N)
 	# State-Dependent Gaussian means
-	μ = [μ₁, μ₂]
+	const μ = [1, 5]
 	
 	const nobs = 1_000
 	S = Vector{Int64}(undef, nobs)
@@ -385,9 +378,9 @@ begin
 		θ = Vector{Vector}(undef, K)
 
 		# Priors
-		μ ~ filldist(truncated(TDist(3), 0, 6), 2)
+		μ ~ filldist(truncated(TDist(3), 1, 6), 2)
 		for i = 1:K
-			θ[i] ~ Dirichlet(ones(K) / K)
+			θ[i] ~ Dirichlet([0.5, 0.5])
 		end
 
 		# first observation
@@ -477,17 +470,17 @@ function sir_ode!(du, u, p, t)
 
 # ╔═╡ 92e17d42-c6d1-4891-99a9-4a3be9e2decf
 md"""
-β = $(@bind β Slider(0.1:0.2:3, default = 1.9, show_value=true))
-
 I₀ = $(@bind I₀ Slider(1:1:20, default = 1, show_value=true))
 
-γ = $(@bind γ Slider(0.1:0.1:1.5, default = 0.9, show_value=true))
+β = $(@bind sim_β Slider(0.1:0.2:3, default = 1.9, show_value=true))
+
+γ = $(@bind sim_γ Slider(0.1:0.1:1.5, default = 0.9, show_value=true))
 """
 
 # ╔═╡ 39902541-5243-4fa9-896c-36db93d9fcea
 begin
 	u = [763, I₀, 0]
-	p = [β, γ]
+	p = [sim_β, sim_γ]
 	tspan = (0.0, 20.0)
 end
 
@@ -511,6 +504,13 @@ It's a boarding school:
 
 The data are freely available in the R package `{outbreaks}`, maintained as part of the [R Epidemics Consortium](http://www.repidemicsconsortium.org).
 """
+
+# ╔═╡ 0a76f019-4853-4ba3-9af8-9f33e1d4c956
+begin
+	# Boarding School SIR
+	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame)
+	cases = boarding_school.in_bed
+end
 
 # ╔═╡ 680f104e-80b4-443f-b4bc-532df758c162
 md"""
@@ -551,6 +551,18 @@ Here's how we would do in `Turing`:
     solᵢ[i] = max(1e-6, solᵢ[i]) # numerical issues arose
     cases[i] ~ NegativeBinomial(solᵢ[i], ϕ)
   end
+end
+
+# ╔═╡ ee2616ca-2602-4823-9cfb-123b958701c4
+begin
+	sir_chain = sample(sir(cases, 1), NUTS(1_000, 0.65), MCMCThreads(), 2_000, 2)
+	summarystats(sir_chain[:, 1:2, :]) # only β and γ
+end
+
+# ╔═╡ 7a62c034-3709-483a-a663-7fe5e09cb773
+begin
+	Plots.gr()
+	plot(sir_chain[:, 1:2, :]) # only β and γ
 end
 
 # ╔═╡ 7f1fd9b4-517a-4fec-89bb-4d696dadbc3d
@@ -658,25 +670,6 @@ md"""
 # ╔═╡ 4af78efd-d484-4241-9d3c-97cc78e1dbd4
 Random.seed!(1)
 
-# ╔═╡ a07277d8-1270-411d-bd33-2eaacac6a7d3
-begin
-	# Boarding School SIR
-	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame)
-	cases = boarding_school.in_bed
-end
-
-# ╔═╡ ee2616ca-2602-4823-9cfb-123b958701c4
-begin
-	sir_chain = sample(sir(cases, 1), NUTS(1_000, 0.65), MCMCThreads(), 2_000, 2)
-	summarystats(sir_chain[:, 1:2, :]) # only β and γ
-end
-
-# ╔═╡ 7a62c034-3709-483a-a663-7fe5e09cb773
-begin
-	Plots.gr()
-	plot(sir_chain[:, 1:2, :]) # only β and γ
-end
-
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
 ## References
@@ -745,7 +738,6 @@ md"""
 # ╟─ca962c0e-4620-4888-b7c3-aa7f6d7899e9
 # ╟─6fd49295-d0e3-4b54-aeae-e9cd07a5281c
 # ╠═58c5460f-c7f4-4a0a-9e18-71b9580e9148
-# ╟─a71320a7-ece3-404f-a582-a8f400f98251
 # ╟─6c04af9b-02af-408d-b9cb-de95ab970f83
 # ╟─5d3d2abb-85e3-4371-926e-61ff236253f1
 # ╟─247a02e5-8599-43fd-9ee5-32ba8b827477
@@ -761,6 +753,7 @@ md"""
 # ╟─92e17d42-c6d1-4891-99a9-4a3be9e2decf
 # ╠═646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 # ╟─5c017766-445d-4f4b-98f1-ae63e78ec34b
+# ╠═0a76f019-4853-4ba3-9af8-9f33e1d4c956
 # ╟─680f104e-80b4-443f-b4bc-532df758c162
 # ╠═ddfc38fc-b47d-4ea5-847a-e9cbee3aa0a1
 # ╠═ee2616ca-2602-4823-9cfb-123b958701c4
@@ -780,7 +773,6 @@ md"""
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
 # ╟─b75f8003-85d4-4bb7-96cf-b6d7881b0e7c
 # ╠═4af78efd-d484-4241-9d3c-97cc78e1dbd4
-# ╠═a07277d8-1270-411d-bd33-2eaacac6a7d3
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 # ╟─634c9cc1-5a93-42b4-bf51-17dadfe488d6
 # ╟─31161289-1d4c-46ba-8bd9-e687fb7da29e
