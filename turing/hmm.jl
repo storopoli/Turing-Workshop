@@ -73,6 +73,6 @@ hmm_chain = sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 6)
 JLSO.save("turing/hmm_chain.jlso",
           :time => now(),
           :sampler => "Gibbs(NUTS(2_000, 0.65, :μ, :θ), PG(50, :s))",
-          :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 4_000, 4)",
+          :specs => "sample(hmm(y, 2), sampler, MCMCThreads(), 2_000, 6)",
           :seed => seed,
           :chain => hmm_chain)
