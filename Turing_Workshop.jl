@@ -147,6 +147,13 @@ md"""
 
 Turing will perform automatic inference on all variables that you specify using `~`.
 
+Just like you would write in mathematical form:
+
+$$\begin{aligned}
+p &\sim \text{Beta}(1,1) \\
+\text{coin flip} &\sim \text{Bernoulli}(p)
+\end{aligned}$$
+
 > **Example**: Unfair coin with $p$ = 0.7.
 """
 
@@ -207,7 +214,7 @@ There is some methods of `Turing`'s `sample()` that accepts either:
 * `MCMCDistributed()`: uses multiprocesses stuff with [`Distributed.jl`](https://docs.julialang.org/en/v1/manual/distributed-computing/) and uses the [MPI -- Message Passing Interface](https://en.wikipedia.org/wiki/Message_Passing_Interface)
 
 
-> If you are using `MCMCDistributed()` don't forget the macro `@everywhere`
+> If you are using `MCMCDistributed()` don't forget the macro `@everywhere` and the `addprocs()` stuff
 
 Just use `sample(model, sampler, MCMCThreads(), N, chains)`
 
@@ -233,7 +240,20 @@ Based on Gelman et al. (2020b)
 
 # ╔═╡ fb366eb1-4ab0-4e7a-83ed-d531978c06a0
 md"""
-To do...
+Predictive checks are a great way to **validate a model**. The idea is to **generate data from the model** using **parameters from draws from the prior or posterior**. *Prior predictive check* is when we simulate data using model's parameters values drawn fom the *prior* distribution, and *posterior* predictive check is is when we simulate data using model's parameters values drawn fom the *posterior* distribution.
+
+The workflow we do when specifying and sampling Bayesian models is not linear or acyclic (Gelman et al., 2020b). This means that we need to iterate several times between the different stages in order to find a model that captures best the data generating process with the desired assumptions.
+
+This is quite easy in `Turing`. We need to create a *prior* distribution for our model. To accomplish this, instead of supplying a MCMC sampler like `NUTS()` or `MH()`, we supply the "sampler" `Prior()` inside `Turing`'s `sample()` function:
+"""
+
+# ╔═╡ 3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
+md"""
+Now we can perform predictive checks using both the *prior* (`prior_chain_coin`) or *posterior* (`chain_coin`) distributions. To draw from the prior and posterior predictive distributions we instantiate a "predictive model", i.e. a `Turing` model but with the observations set to `missing`, and then calling `predict()` on the predictive model and the previously drawn samples.
+
+Let's do the *prior* predictive check:
+
+> The *posterior* predictive check is trivial, just do the same but with the posterior `chain`.
 """
 
 # ╔═╡ 5674f7aa-3205-47c7-8367-244c6419ce69
@@ -243,9 +263,42 @@ md"""
 
 # ╔═╡ 83cc80c1-d97e-4b82-872e-e5493d2b62ab
 md"""
-To do...
+We can inspect and plot our model's chains and its underlying parameters with [`MCMCChains.jl`](https://turinglang.github.io/MCMCChains.jl/stable/)
 
-https://turing.ml/dev/docs/using-turing/guide
+1. **Inspecting Chains**
+   * **Summary Statistics**: just do `summarystats(chain)`
+   * **Quantiles** (Median, etc.): just do `quantile(chain)`
+   * What if I just want a **subset** of parameters?: just do `group(chain, :parameter)` or index with `chain[:, 1:6, :]`
+"""
+
+# ╔═╡ c82687d1-89d0-4ecd-bed7-1708ba8b2662
+md"""
+2. **Plotting Chains**: Now we have several options. The default `plot()` recipe will plot a `traceplot()` side-by-side with a `mixeddensity()`.
+
+   First, we have to choose either to plot **parameters**(`:parameter`) or **chains**(`:chain`) with the keyword `colordim`.
+"""
+
+# ╔═╡ 3d09c8c3-ce95-4f26-9136-fedd601e2a70
+md"""
+Second, we have several plots to choose from:
+* `traceplot()`: used for inspecting Markov chain **covergence**
+* `meanplot()`: running average plots per interaction
+* `density()`: **density** plots
+* `histogram()`: **histogram** plots
+* `mixeddensity()`: **mixed density** plots
+* `autcorplot()`: **autocorrelation** plots
+"""
+
+# ╔═╡ 41b014c2-7b49-4d03-8741-51c91b95f64c
+md"""
+There is also the option to **construct your own plot** with `plot()` and the keyword `seriestype`:
+"""
+
+# ╔═╡ 5f639d2d-bb96-4a33-a78e-d5b9f0e8d274
+md"""
+Finally there is one special plot that makes a **cornerplot** (requires `StatPlots`) of parameters in a chain:
+
+> Obs: I will hijack a multi-parameter model from *below* to show the cornerplot
 """
 
 # ╔═╡ c70ebb70-bd96-44a5-85e9-871b0e478b1a
@@ -408,9 +461,13 @@ md"""
 
 # ╔═╡ 45c342fd-b893-46aa-b2ee-7c93e7a1d207
 md"""
-To do...
+There is a **lot** of *crazy* stuff you can do with `Turing` and Bayesian models.
 
-Intro
+Here I will cover:
+
+1. **Discrete Parameters (HMM)**
+
+2. **Models with ODEs**
 """
 
 # ╔═╡ d44c7baa-80d2-4fdb-a2de-35806477dd58
@@ -527,6 +584,7 @@ end
 
 # ╔═╡ 6c04af9b-02af-408d-b9cb-de95ab970f83
 begin
+	Plots.gr(dpi=300)
 	scatter(y, mc= S, xlabel=L"t", ylabel=L"y", label=false)
 	hline!([1,5], lw=4, label=false, c=:black, style=:dash)
 end
@@ -535,7 +593,7 @@ end
 md"""
 Here is the `Stan` code (I've simplified from Leos-Barajas & Michelot's original code) :
 
-> Also note that we are using the `log_sum_exp()` trick
+> Note that we are using the `log_sum_exp()` trick
 """
 
 # ╔═╡ 247a02e5-8599-43fd-9ee5-32ba8b827477
@@ -726,6 +784,49 @@ begin
 	summarystats(chain_coin_parallel)
 end
 
+# ╔═╡ 475be60f-1876-4086-9725-3bf5f52a3e43
+summarystats(chain_coin_parallel)
+
+# ╔═╡ f6bc0cfd-a1d9-48e5-833c-f33bf1b89d45
+quantile(chain_coin_parallel)
+
+# ╔═╡ ed640696-cae6-47e1-a4df-0655192e0855
+quantile(group(chain_coin_parallel, :p))
+
+# ╔═╡ bc9fa101-8854-4af5-904a-f0b683fb63b1
+summarystats(chain_coin_parallel[:, 1:1, :])
+
+# ╔═╡ 270c0b90-cce1-4092-9e29-5f9deda2cb7d
+plot(chain_coin_parallel; colordim=:chain, dpi=300)
+
+# ╔═╡ c4146b8b-9d11-446e-9765-8d5283a6d445
+plot(chain_coin_parallel; colordim=:parameter, dpi=300)
+
+# ╔═╡ 8d9bdae2-658d-45bf-9b25-50b6efbe0cdf
+plot(
+	traceplot(chain_coin_parallel, title="traceplot"),
+	meanplot(chain_coin_parallel, title="meanplot"),
+	density(chain_coin_parallel, title="density"),
+	histogram(chain_coin_parallel, title="histogram"),
+	mixeddensity(chain_coin_parallel, title="mixeddensity"),
+	autocorplot(chain_coin_parallel, title="autocorplot"),
+	dpi=300, size=(840, 600)
+)
+
+# ╔═╡ 2f08c6e4-fa7c-471c-ad9f-9d036e3027d5
+plot(chain_coin_parallel, seriestype = (:meanplot, :autocorplot), dpi=300)
+
+# ╔═╡ 0fe83f55-a379-49ea-ab23-9defaab05890
+prior_chain_coin = sample(coin(coin_flips), Prior(), 100);
+
+# ╔═╡ dd27ee5f-e442-42d7-a39b-d76328d2e59f
+begin
+	missing_data = Vector{Missing}(missing, 1); # vector of `missing`
+	model_predict = coin(missing_data); # instantiate the "predictive model"
+	prior_check = predict(model_predict, prior_chain_coin);
+	summarystats(prior_check)
+end
+
 # ╔═╡ 646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 begin
 	Plots.gr(dpi=300)
@@ -801,9 +902,12 @@ begin
 	summarystats(sir_chain[:, 1:2, :]) # only β and γ
 end
 
+# ╔═╡ 3f7c469a-c366-49dd-b09c-ae9b2b5db3fd
+corner(sir_chain, dpi=300)
+
 # ╔═╡ 7a62c034-3709-483a-a663-7fe5e09cb773
 begin
-	Plots.gr()
+	Plots.gr(dpi=300)
 	plot(sir_chain[:, 1:2, :]) # only β and γ
 end
 
@@ -896,6 +1000,13 @@ begin
 	kernel_reparameterized(x, y) = logpdf(Normal(), x)
 	surface(x, x,  kernel_reparameterized, xlab="x", ylab="y", zlab="log(PDF)")
 end
+
+# ╔═╡ 800fe4ba-e1a4-4e94-929f-7d66516e7bd6
+md"""
+#### Non-Centered Reparametrization of a Hierarchical Model
+
+To do...
+"""
 
 # ╔═╡ 26265a91-2c8e-46d8-9a87-a2d097e7433a
 md"""
@@ -1065,9 +1176,25 @@ end
 # ╟─2ab3c34a-1cfc-4d20-becc-5902d08d03e0
 # ╟─924fcad9-75c1-4707-90ef-3e36947d64fe
 # ╟─fc8e40c3-34a1-4b2e-bd1b-893d7998d359
-# ╠═fb366eb1-4ab0-4e7a-83ed-d531978c06a0
+# ╟─fb366eb1-4ab0-4e7a-83ed-d531978c06a0
+# ╠═0fe83f55-a379-49ea-ab23-9defaab05890
+# ╟─3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
+# ╠═dd27ee5f-e442-42d7-a39b-d76328d2e59f
 # ╟─5674f7aa-3205-47c7-8367-244c6419ce69
-# ╠═83cc80c1-d97e-4b82-872e-e5493d2b62ab
+# ╟─83cc80c1-d97e-4b82-872e-e5493d2b62ab
+# ╠═475be60f-1876-4086-9725-3bf5f52a3e43
+# ╠═f6bc0cfd-a1d9-48e5-833c-f33bf1b89d45
+# ╠═ed640696-cae6-47e1-a4df-0655192e0855
+# ╠═bc9fa101-8854-4af5-904a-f0b683fb63b1
+# ╟─c82687d1-89d0-4ecd-bed7-1708ba8b2662
+# ╠═270c0b90-cce1-4092-9e29-5f9deda2cb7d
+# ╠═c4146b8b-9d11-446e-9765-8d5283a6d445
+# ╟─3d09c8c3-ce95-4f26-9136-fedd601e2a70
+# ╠═8d9bdae2-658d-45bf-9b25-50b6efbe0cdf
+# ╟─41b014c2-7b49-4d03-8741-51c91b95f64c
+# ╠═2f08c6e4-fa7c-471c-ad9f-9d036e3027d5
+# ╟─5f639d2d-bb96-4a33-a78e-d5b9f0e8d274
+# ╠═3f7c469a-c366-49dd-b09c-ae9b2b5db3fd
 # ╟─c70ebb70-bd96-44a5-85e9-871b0e478b1a
 # ╟─6630eb47-77f6-48e9-aafe-55bda275449c
 # ╠═37e751c7-8b6c-47d9-8013-97015d1e1fb2
@@ -1088,7 +1215,7 @@ end
 # ╟─7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
 # ╠═c64d355f-f5a2-46a5-86f3-2d02da98f305
 # ╟─9ebac6ba-d213-4ed8-a1d5-66b841fafa00
-# ╠═45c342fd-b893-46aa-b2ee-7c93e7a1d207
+# ╟─45c342fd-b893-46aa-b2ee-7c93e7a1d207
 # ╟─d44c7baa-80d2-4fdb-a2de-35806477dd58
 # ╟─c1b2d007-1004-42f5-b65c-b4e2e7ff7d8e
 # ╟─f1153918-0748-4400-ae8b-3b59f8c5d755
@@ -1127,6 +1254,7 @@ end
 # ╟─60494b7c-1a08-4846-8a80-12533552a697
 # ╟─b57195f9-c2a1-4676-96f9-faee84f7fc26
 # ╟─438d437e-7b00-4a13-8f8a-87fdc332a190
+# ╠═800fe4ba-e1a4-4e94-929f-7d66516e7bd6
 # ╟─26265a91-2c8e-46d8-9a87-a2d097e7433a
 # ╟─2eeb402e-c5f9-449c-af19-ff8f2e6c7246
 # ╠═6870ca6d-256d-4a38-970e-1c26ceba9fa4
