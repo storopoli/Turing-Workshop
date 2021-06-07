@@ -113,6 +113,19 @@ md"""
 # ╔═╡ cb808fd4-6eb2-457e-afa4-58ae1be09aec
 md"""
 [**`Turing`** (Ge, Xu & Ghahramani, 2018)](http://turing.ml/) is a ecosystem of Julia packages for Bayesian Inference using [probabilistic programming](https://en.wikipedia.org/wiki/Probabilistic_programming). Models specified using `Turing` are easy to read and write -- models work the way you write them. Like everything in Julia, `Turing` is fast [(Tarek, Xu, Trapp, Ge & Ghahramani, 2020)](https://arxiv.org/abs/2002.02702).
+
+Before we dive into how to specify models in Turing. Let's discuss Turing's **ecosystem**.
+We have several Julia packages under the Turing's GitHub organization [TuringLang](https://github.com/TuringLang), but I will focus on 5 of those:
+
+* [`Turing.jl`](https://github.com/TuringLang/Turing.jl): main package that we use to **interface with all the Turing ecosystem** of packages and the backbone of the PPL Turing.
+
+* [`MCMCChains.jl`](https://github.com/TuringLang/MCMCChains.jl): is an interface to **summarizing MCMC simulations** and has several utility functions for **diagnostics** and **visualizations**.
+
+* [`DynamicPPL.jl`](https://github.com/TuringLang/DynamicPPL.jl): which specifies a domain-specific language and backend for Turing (which itself is a PPL), modular and written in Julia
+
+* [`AdvancedHMC.jl`](https://github.com/TuringLang/AdvancedHMC.jl): modular and efficient implementation of advanced HMC algorithms. The state-of-the-art HMC algorithm is the **N**o-**U**-**T**urn **S**ampling (NUTS) (Hoffman & Gelman, 2011)
+
+* [`DistributionsAD.jl`](https://github.com/TuringLang/DistributionsAD.jl): defines the necessary functions to enable automatic differentiation (AD) of the `logpdf` function from [`Distributions.jl`](https://github.com/JuliaStats/Distributions.jl) using the packages [`Tracker.jl`](https://github.com/FluxML/Tracker.jl), [`Zygote.jl`](https://github.com/FluxML/Zygote.jl), [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl) and [`ReverseDiff.jl`](https://github.com/JuliaDiff/ReverseDiff.jl). The main goal of `DistributionsAD.jl` is to make the output of `logpdf` differentiable with respect to all continuous parameters of a distribution.
 """
 
 # ╔═╡ 0484ae7f-bd8a-4615-a760-5c4b2eef9d3f
@@ -122,13 +135,58 @@ md"""
 
 # ╔═╡ 1d467044-bc7d-4df7-bda6-bb8ea6ff0712
 md"""
-To do...
+**We specify the model inside a macro** `@model` where we can assign variables in two ways:
+
+* using `~`: which means that a variable follows some probability distribution (Normal, Binomial etc.) and its value is random under that distribution
+
+* using `=`: which means that a variable does not follow a probability distribution and its value is deterministic (like the normal `=` assignment in programming languages)
+
+Turing will perform automatic inference on all variables that you specify using `~`.
+
+> **Example**: Unfair coin with $p$ = 0.7.
 """
+
+# ╔═╡ b1d99482-53f5-4c6b-8c20-c761ff6bdb77
+coin_flips = rand(Bernoulli(0.7), 100)
 
 # ╔═╡ 9f6b96a7-033d-4c7d-a853-46a0b5af4675
 md"""
 ## 3. How to specify a MCMC sampler (`NUTS`, `HMC`, `MH` etc.)
 """
+
+# ╔═╡ b7667fb4-6e76-4711-b61d-dae5f993531e
+md"""
+We have [several samplers](https://turing.ml/dev/docs/using-turing/sampler-viz) available:
+
+* `MH()`: **M**etropolis-**H**astings
+* `PG()`: **P**article **G**ibbs
+* `HMC()`: **H**amiltonian **M**onte **C**arlo
+* `HMCDA()`: **H**amiltonian **M**onte **C**arlo with Nesterov's **D**ual **A**veraging
+* `NUTS()`: **N**o-**U**-**T**urn **S**ampling
+
+Just stick your desired `sampler` inside the function `sample(model, sampler, N; kwargs)`.
+
+Play around if you want. Choose your `sampler`:
+"""
+
+# ╔═╡ cb168dc1-70e2-450f-b2cf-c8680251ab27
+@bind chosen_sampler Radio(["MH", "PG", "HMC", "HMCDA", "NUTS"], default = "MH")
+
+# ╔═╡ 07d408cf-d202-40b2-90c2-5e8630549339
+begin
+	your_sampler = nothing
+	if chosen_sampler == "MH"
+		your_sampler = MH()
+	elseif chosen_sampler == "PG"
+		your_sampler = PG(2)
+	elseif chosen_sampler == "HMC"
+		your_sampler = HMC(0.05, 10)
+	elseif chosen_sampler == "HMCDA"
+		your_sampler = HMCDA(10, 0.65, 0.3)
+	elseif chosen_sampler == "NUTS"
+		your_sampler = NUTS(10, 0.65)
+	end
+end
 
 # ╔═╡ e6365296-cd68-430e-99c5-fb571f39aad5
 md"""
@@ -315,7 +373,10 @@ begin
 end
 
 # ╔═╡ 6c04af9b-02af-408d-b9cb-de95ab970f83
-scatter(y, mc= S, xlabel=L"t", ylabel=L"y", label=false)
+begin
+	scatter(y, mc= S, xlabel=L"t", ylabel=L"y", label=false)
+	hline!([1,5], lw=4, label=false, c=:black, style=:dash)
+end
 
 # ╔═╡ 5d3d2abb-85e3-4371-926e-61ff236253f1
 md"""
@@ -359,6 +420,8 @@ model{
   target += log_sum_exp(lp);
 }
 ```
+
+Obs: `log_sum_exp(a, b) = log(exp(a) + exp(b))`
 """
 
 # ╔═╡ 6db0245b-0461-4db0-9462-7a5f80f7d589
@@ -407,7 +470,7 @@ md"""
 """
 
 # ╔═╡ 9b020402-ea15-4f52-9fff-c70d275b97ac
-Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/SIR.png?raw=true", :width => 500)
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/SIR.png?raw=true", :width => 400)
 
 # ╔═╡ c81f4877-024f-4dc8-b7ce-e781ab6101f3
 md"""
@@ -482,6 +545,27 @@ begin
 	u = [763, I₀, 0]
 	p = [sim_β, sim_γ]
 	tspan = (0.0, 20.0)
+end
+
+# ╔═╡ 65fa382d-4ef7-432d-8630-27082977185b
+@model coin(coin_flips) = begin
+	p ~ Beta(1,1)
+	for i in 1:length(coin_flips)
+		coin_flips[i] ~ Bernoulli(p)
+	end
+end
+
+
+# ╔═╡ 06f93734-2315-4b36-a39a-09e8167bab1f
+begin
+	chain_coin = sample(coin(coin_flips), MH(), 100)
+	summarystats(chain_coin)
+end
+
+# ╔═╡ 744a8a63-647f-4550-adf7-44354fde44be
+begin
+	chain_coin_2 = sample(coin(coin_flips), your_sampler, 100) # Here is your sampler
+	summarystats(chain_coin_2)
 end
 
 # ╔═╡ 646ab8dc-db5a-4eb8-a08b-217c2f6d86be
@@ -686,6 +770,8 @@ Gelman, A., Vehtari, A., Simpson, D., Margossian, C. C., Carpenter, B., Yao, Y.,
 
 Grinsztajn, L., Semenova, E., Margossian, C. C., & Riou, J. (2021). Bayesian workflow for disease transmission modeling in Stan. ArXiv:2006.02985 [q-Bio, Stat]. http://arxiv.org/abs/2006.02985
 
+Hoffman, M. D., & Gelman, A. (2011). The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo. Journal of Machine Learning Research, 15(1), 1593–1623.
+
 Leos-Barajas, V., & Michelot, T. (2018). An Introduction to Animal Movement Modeling with Hidden Markov Models using Stan for Bayesian Inference. ArXiv:1806.10639 [q-Bio, Stat]. http://arxiv.org/abs/1806.10639
 
 McElreath, R. (2020). *Statistical rethinking: A Bayesian course with examples in R and Stan*. CRC press.
@@ -713,8 +799,15 @@ md"""
 # ╟─716cea7d-d771-46e9-ad81-687292004009
 # ╟─cb808fd4-6eb2-457e-afa4-58ae1be09aec
 # ╟─0484ae7f-bd8a-4615-a760-5c4b2eef9d3f
-# ╠═1d467044-bc7d-4df7-bda6-bb8ea6ff0712
+# ╟─1d467044-bc7d-4df7-bda6-bb8ea6ff0712
+# ╠═b1d99482-53f5-4c6b-8c20-c761ff6bdb77
+# ╠═65fa382d-4ef7-432d-8630-27082977185b
+# ╠═06f93734-2315-4b36-a39a-09e8167bab1f
 # ╟─9f6b96a7-033d-4c7d-a853-46a0b5af4675
+# ╟─b7667fb4-6e76-4711-b61d-dae5f993531e
+# ╟─cb168dc1-70e2-450f-b2cf-c8680251ab27
+# ╟─07d408cf-d202-40b2-90c2-5e8630549339
+# ╠═744a8a63-647f-4550-adf7-44354fde44be
 # ╟─e6365296-cd68-430e-99c5-fb571f39aad5
 # ╠═927ad0a4-ba68-45a6-9bde-561915503e48
 # ╟─2ab3c34a-1cfc-4d20-becc-5902d08d03e0
