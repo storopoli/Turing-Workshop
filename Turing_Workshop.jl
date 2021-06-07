@@ -18,6 +18,7 @@ begin
     import Pkg
     Pkg.activate(mktempdir())
     Pkg.add([
+		Pkg.PackageSpec(name="BenchmarkTools", version="1.0.0"),
         Pkg.PackageSpec(name="CSV", version="0.8.5"),
         Pkg.PackageSpec(name="Chain", version="0.4.6"),
         Pkg.PackageSpec(name="DataFrames", version="1.1.1"),
@@ -29,14 +30,15 @@ begin
 		Pkg.PackageSpec(name="PlutoUI", version="0.7.9"),
 		Pkg.PackageSpec(name="StatsBase", version="0.33.8"),
 		Pkg.PackageSpec(name="StatsPlots", version="0.14.21"),
-		Pkg.PackageSpec(name="Turing", version="0.16.0"),
-		
+		Pkg.PackageSpec(name="Turing", version="0.16.0")
     ])
+	using BenchmarkTools
 	using CSV
 	using DataFrames
 	using DifferentialEquations
 	using Distributions
 	using LaTeXStrings
+	using LazyArrays
 	using LinearAlgebra
 	using Random
 	using StatsBase
@@ -44,6 +46,8 @@ begin
 	using Turing
 	using Plots
 	using PlutoUI
+	using LinearAlgebra: qr
+	using Statistics: mean, std
 end
 
 # ╔═╡ 31161289-1d4c-46ba-8bd9-e687fb7da29e
@@ -68,10 +72,10 @@ A little bit about myself:
 
 $(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/profile_pic.jpg?raw=true", :width => 100, :align => "right"))
 
-* **Jose Storopoli**, PhD
-* Associate Professor at **Universidade Nove de Julho** (UNINOVE)
-* Teach undergraduates **Statistics** and **Machine Learning** (using Python 😓)
-* Teach graduate students **Bayesian Statistics** (using `Stan`) and **Scientific Computing** (using **Julia** 🚀)
+* **Jose Storopoli**, PhD 🌐 [storopoli.io](https://storopoli.io)
+* Associate Professor at [**Universidade Nove de Julho** (UNINOVE)](https://uninove.br)
+* Teach undergraduates [**Statistics** and **Machine Learning** (using Python 😓)](https://storopoli.io/ciencia-de-dados)
+* Teach graduate students [**Bayesian Statistics** (using `Stan`)](https://storopoli.io/Estatistica-Bayesiana) and **Scientific Computing** (using **Julia** 🚀)
 * I've made some `Turing` tutorials, you can check them out at [storopoli.io/Bayesian-Julia](https://storopoli.io/Bayesian-Julia)
 * You can find me on [Twitter](https://twitter.com/JoseStoropoli) (altough I've rarelly use it) or on [LinkedIn](https://www.linkedin.com/in/storopoli/)
 """
@@ -147,7 +151,7 @@ Turing will perform automatic inference on all variables that you specify using 
 """
 
 # ╔═╡ b1d99482-53f5-4c6b-8c20-c761ff6bdb77
-coin_flips = rand(Bernoulli(0.7), 100)
+coin_flips = rand(Bernoulli(0.7), 100);
 
 # ╔═╡ 9f6b96a7-033d-4c7d-a853-46a0b5af4675
 md"""
@@ -170,7 +174,7 @@ Play around if you want. Choose your `sampler`:
 """
 
 # ╔═╡ cb168dc1-70e2-450f-b2cf-c8680251ab27
-@bind chosen_sampler Radio(["MH", "PG", "HMC", "HMCDA", "NUTS"], default = "MH")
+@bind chosen_sampler Radio(["MH", "PG","SMC", "HMC", "HMCDA", "NUTS"], default = "MH")
 
 # ╔═╡ 07d408cf-d202-40b2-90c2-5e8630549339
 begin
@@ -179,6 +183,8 @@ begin
 		your_sampler = MH()
 	elseif chosen_sampler == "PG"
 		your_sampler = PG(2)
+	elseif chosen_sampler == "SMC"
+		your_sampler = SMC()
 	elseif chosen_sampler == "HMC"
 		your_sampler = HMC(0.05, 10)
 	elseif chosen_sampler == "HMCDA"
@@ -195,7 +201,17 @@ md"""
 
 # ╔═╡ 927ad0a4-ba68-45a6-9bde-561915503e48
 md"""
-The difference between `MCMCThreads()` and `MCMCDistributed()` ...
+There is some methods of `Turing`'s `sample()` that accepts either:
+
+* `MCMCThreads()`: uses multithread stuff with [`Threads.jl`](https://docs.julialang.org/en/v1/manual/multi-threading/#man-multithreading)
+* `MCMCDistributed()`: uses multiprocesses stuff with [`Distributed.jl`](https://docs.julialang.org/en/v1/manual/distributed-computing/) and uses the [MPI -- Message Passing Interface](https://en.wikipedia.org/wiki/Message_Passing_Interface)
+
+
+> If you are using `MCMCDistributed()` don't forget the macro `@everywhere`
+
+Just use `sample(model, sampler, MCMCThreads(), N, chains)`
+
+Let's revisit our biased-coin example:
 """
 
 # ╔═╡ 2ab3c34a-1cfc-4d20-becc-5902d08d03e0
@@ -228,16 +244,151 @@ md"""
 # ╔═╡ 83cc80c1-d97e-4b82-872e-e5493d2b62ab
 md"""
 To do...
+
+https://turing.ml/dev/docs/using-turing/guide
 """
 
 # ╔═╡ c70ebb70-bd96-44a5-85e9-871b0e478b1a
 md"""
-## 5. Better tricks to avoid for-loops inside `@model` (`lazyarrays` and `filldist`)
+## 5. Better tricks to avoid `for`-loops inside `@model` (`lazyarrays` and `filldist`)
 """
+
+# ╔═╡ 6630eb47-77f6-48e9-aafe-55bda275449c
+md"""
+First the Naïve model *with* `for`-loops:
+"""
+
+# ╔═╡ 37e751c7-8b6c-47d9-8013-97015d1e1fb2
+@model logreg(X,  y; predictors=size(X, 2)) = begin
+	#priors
+	α ~ Normal(0, 2.5)
+	β = Vector{Float64}(undef, predictors)
+	for i ∈ 1:predictors
+		β[i] ~ Normal()
+	end
+
+	#likelihood
+	for i ∈ 1:length(y)
+		y[i] ~ BernoulliLogit(α +  X[i, :] ⋅ β)
+	end
+end;
+
+# ╔═╡ 7a21e7a0-322b-4f8e-9d8b-a2f452f7e092
+md"""
+* `Turing`'s `BernoulliLogit()` is a logit-parameterised Bernoulli distribution that convert logodds to probability.
+"""
+
+# ╔═╡ f8f59ebb-bb1e-401f-97b5-507634badb3f
+md"""
+Now a model *without* `for`-loops
+"""
+
+# ╔═╡ 15795f79-7d7b-43d2-a4b4-99ad968a7f72
+@model logreg_vectorized(X,  y; predictors=size(X, 2)) = begin
+	#priors
+	α ~ Normal(0, 2.5)
+	β ~ filldist(Normal(), predictors)
+
+	#likelihood
+	y ~ arraydist(LazyArray(@~ BernoulliLogit.(α .+ X * β)))
+end;
 
 # ╔═╡ dd5fbb2a-4220-4e47-945a-6870b799c50d
 md"""
-To do...
+* `Turing`'s `arraydist()` function wraps an array of distributions returning a new distribution sampling from the individual distributions.
+
+* `LazyArrays`' `LazyArray()` constructor wrap a lazy object that wraps a computation producing an `array` to an `array`. Last, but not least, the macro `@~` creates a broadcast and is a nice short hand for the familiar dot `.` broadcasting operator in Julia. This is an efficient way to tell Turing that our `y` vector is distributed lazily as a `BernoulliLogit` broadcasted to `α` added to the product of the data matrix `X` and `β` coefficient vector.
+"""
+
+# ╔═╡ 0cc8e12c-9b72-41ec-9c13-d9ae0bdc6100
+md"""
+For our example, I will use a famous dataset called `wells` (Gelman & Hill, 2007), which is data from a survey of 3,200 residents in a small area of Bangladesh suffering from arsenic contamination of groundwater. Respondents with elevated arsenic levels in their wells had been encouraged to switch their water source to a safe public or private well in the nearby area and the survey was conducted several years later to learn which of the affected residents had switched wells. It has 3,200 observations and the following variables:
+
+* `switch` – binary/dummy (0 or 1) for well-switching.
+
+* `arsenic` – arsenic level in respondent's well.
+
+* `dist` – distance (meters) from the respondent's house to the nearest well with safe drinking water.
+
+* `association` – binary/dummy (0 or 1) if member(s) of household participate in community organizations.
+
+* `educ` – years of education (head of household).
+"""
+
+# ╔═╡ fce0f511-3b00-4079-85c6-9b2d2d7c04cb
+begin
+	# Logistic Regression
+	wells = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/wells.csv?raw=true"), DataFrame);
+	X_wells = Matrix(select(wells, Not(:switch)));
+	y_wells = wells[:, :switch];
+end
+
+# ╔═╡ 5ba6b247-8277-4100-abe7-8d06af04a011
+md"""
+Why do that?
+
+1. Well, you'll have nice performance gains
+"""
+
+# ╔═╡ 0f000fc4-1a7b-4522-8355-8df572ee8800
+with_terminal() do
+	@btime sample(logreg($X_wells, $y_wells), MH(), 100);
+end
+
+# ╔═╡ 8a87e324-f3d9-4162-88ab-3833a6d1fc2e
+with_terminal() do
+	@btime sample(logreg_vectorized($X_wells, $y_wells), MH(), 100);
+end
+
+# ╔═╡ 3c954cbc-aed7-4d22-b578-a80ce62ebb49
+md"""
+2. Some [autodiff backends only works without `for`-loops inside the `@model`](https://turing.ml/dev/docs/using-turing/performancetips#special-care-for-codetrackercode-and-codezygotecode):
+   * [`Tracker.jl`](https://github.com/FluxML/Tracker.jl)
+   * [`Zygote.jl`](https://github.com/FluxML/Zygote.jl)
+"""
+
+# ╔═╡ 521e2473-1aba-43be-951a-25537062891e
+md"""
+### 5.1 Which [autodiff backend](https://turing.ml/dev/docs/using-turing/autodiff) to use?
+"""
+
+# ╔═╡ bafc91d2-8cae-4af8-b5ed-8199eef40c4d
+md"""
+We have mainly two [types of autodiff](https://en.wikipedia.org/wiki/Automatic_differentiation) (both uses the chain rule $\mathbb{R}^N \to \mathbb{R}^M$)
+
+* **Forward Autodiff**: The **independent** variable is fixed and differentiation is performed in a *forward* manner. Preffered when $N > M$
+   * [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl): current (version 0.16) Turing's default, `:forwarddiff`
+
+* **Reverse Autodiff**: The **dependent** variable is fixed and differentiation is performed in a *backward* manner. Preffered when $N < M$
+   * [`Tracker.jl`](https://github.com/FluxML/Tracker.jl): `:tracker`
+   * [`Zygote.jl`](https://github.com/FluxML/Zygote.jl): `:zygote`
+   * [`ReverseDiff.jl`](https://github.com/JuliaDiff/ReverseDiff.jl): `:reversediff`
+
+Checkout this video is awesome to learn what Automatic Differentiation is!
+"""
+
+# ╔═╡ a2292bc1-3379-450d-beb5-ae8f41b69be8
+html"""<iframe width="560" height="315" src="https://www.youtube.com/embed/wG_nF1awSSY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>"""
+
+# ╔═╡ 38055b57-f983-4440-bef5-0ab6d180ff1e
+md"""
+To change `Turing`'s autodiff backend just type:
+
+```julia
+Turing.setadbackend(:zygote)
+```
+
+or 
+
+```julia
+Turing.setadbackend(:tracker)
+```
+
+Note that you need to import the backend:
+
+```julia
+using Zygote
+```
 """
 
 # ╔═╡ 7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
@@ -258,6 +409,8 @@ md"""
 # ╔═╡ 45c342fd-b893-46aa-b2ee-7c93e7a1d207
 md"""
 To do...
+
+Intro
 """
 
 # ╔═╡ d44c7baa-80d2-4fdb-a2de-35806477dd58
@@ -348,26 +501,26 @@ md"""
 
 # ╔═╡ 58c5460f-c7f4-4a0a-9e18-71b9580e9148
 begin
-	const N = 2 # Number of States
+	const T = 2 # Number of States
 	
 	# Transition Probabilities
 	const Γ = Matrix([0.9 0.1; 0.1 0.9])
 	# initial distribution set to the stationary distribution
-	const δ = (Diagonal(ones(N)) - Γ .+ 1) \ ones(N)
+	const δ = (Diagonal(ones(T)) - Γ .+ 1) \ ones(T)
 	# State-Dependent Gaussian means
 	const μ = [1, 5]
 	
-	const nobs = 1_000
-	S = Vector{Int64}(undef, nobs)
-	y = Vector{Float64}(undef, nobs)
+	const n_obs = 1_000
+	S = Vector{Int64}(undef, n_obs)
+	y = Vector{Float64}(undef, n_obs)
 	
 	# initialise state and observation
-	S[1] = sample(1:N, aweights(δ))
+	S[1] = sample(1:T, aweights(δ))
 	y[1] = rand(Normal(μ[S[1]], 2))
 	
 	# simulate state and observation processes forward
-	for t in 2:nobs
-	    S[t] = sample(1:N, aweights(Γ[S[t - 1], :]))
+	for t in 2:n_obs
+	    S[t] = sample(1:T, aweights(Γ[S[t - 1], :]))
 	    y[t] = rand(Normal(μ[S[t]], 2))
 	end
 end
@@ -455,12 +608,12 @@ begin
 			s[i] ~ Categorical(vec(θ[s[i - 1]]))
 			y[i] ~ Normal(μ[s[i]], 2)
 		end
-	end
+	end;
 
-	sampler = Gibbs(NUTS(10, 0.65, :μ, :θ),
-					PG(1, :s))
+	composite_sampler = Gibbs(NUTS(10, 0.65, :μ, :θ),
+					PG(1, :s));
 
-	hmm_chain = sample(hmm(y, 2), sampler, 50)
+	hmm_chain = sample(hmm(y, 2), composite_sampler, 50);
 	summarystats(hmm_chain[:, 1:6, :]) #only μ and θ
 end
 
@@ -542,38 +695,43 @@ I₀ = $(@bind I₀ Slider(1:1:20, default = 1, show_value=true))
 
 # ╔═╡ 39902541-5243-4fa9-896c-36db93d9fcea
 begin
-	u = [763, I₀, 0]
-	p = [sim_β, sim_γ]
-	tspan = (0.0, 20.0)
+	u = [763, I₀, 0];
+	p = [sim_β, sim_γ];
+	tspan_sim = (0.0, 20.0);
 end
 
 # ╔═╡ 65fa382d-4ef7-432d-8630-27082977185b
 @model coin(coin_flips) = begin
-	p ~ Beta(1,1)
-	for i in 1:length(coin_flips)
+	p ~ Beta(1, 1)
+	for i ∈ 1:length(coin_flips)
 		coin_flips[i] ~ Bernoulli(p)
 	end
-end
-
+end;
 
 # ╔═╡ 06f93734-2315-4b36-a39a-09e8167bab1f
 begin
-	chain_coin = sample(coin(coin_flips), MH(), 100)
+	chain_coin = sample(coin(coin_flips), MH(), 100);
 	summarystats(chain_coin)
 end
 
 # ╔═╡ 744a8a63-647f-4550-adf7-44354fde44be
 begin
-	chain_coin_2 = sample(coin(coin_flips), your_sampler, 100) # Here is your sampler
+	chain_coin_2 = sample(coin(coin_flips), your_sampler, 100); # Here is your sampler
 	summarystats(chain_coin_2)
+end
+
+# ╔═╡ ab6c2ba6-4cd8-473a-88c6-b8d61551fb22
+begin
+	chain_coin_parallel = sample(coin(coin_flips), MH(), MCMCThreads(), 100, 2);
+	summarystats(chain_coin_parallel)
 end
 
 # ╔═╡ 646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 begin
-	Plots.gr()
-	prob = ODEProblem(sir_ode!, u, tspan, p)
+	Plots.gr(dpi=300)
+	prob = ODEProblem(sir_ode!, u, tspan_sim, p)
 	sol = solve(prob, Tsit5(), saveat=1.0)
-	plot(sol, dpi=300, label=[L"S" L"I" L"R"], lw=3)
+	plot(sol, label=[L"S" L"I" L"R"], lw=3)
 	xlabel!("days")
 	ylabel!("N")
 end
@@ -592,8 +750,8 @@ The data are freely available in the R package `{outbreaks}`, maintained as part
 # ╔═╡ 0a76f019-4853-4ba3-9af8-9f33e1d4c956
 begin
 	# Boarding School SIR
-	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame)
-	cases = boarding_school.in_bed
+	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame);
+	cases = boarding_school.in_bed;
 end
 
 # ╔═╡ 680f104e-80b4-443f-b4bc-532df758c162
@@ -635,11 +793,11 @@ Here's how we would do in `Turing`:
     solᵢ[i] = max(1e-6, solᵢ[i]) # numerical issues arose
     cases[i] ~ NegativeBinomial(solᵢ[i], ϕ)
   end
-end
+end;
 
 # ╔═╡ ee2616ca-2602-4823-9cfb-123b958701c4
 begin
-	sir_chain = sample(sir(cases, 1), NUTS(1_000, 0.65), MCMCThreads(), 2_000, 2)
+	sir_chain = sample(sir(cases, 1), NUTS(1_000, 0.65), MCMCThreads(), 2_000, 2);
 	summarystats(sir_chain[:, 1:2, :]) # only β and γ
 end
 
@@ -669,12 +827,15 @@ $$p(y,x) = \text{Normal}(y \mid 0,3) \times
 \text{normal}\left(x \mid 0,\exp\left(\frac{y}{2}\right)\right)$$
 """
 
-# ╔═╡ fe0fefb6-2755-4319-a944-bbbc7843aead
+# ╔═╡ 08dbe330-670d-48d5-b704-2421e687bff1
 begin
-	Plots.plotly()
-	x = -2:0.01:2;
-	kernel(x, y) = logpdf(Normal(0, exp(y / 2)), x)
-	surface(x, x, kernel, xlab="x", ylab="y", zlab="log(PDF)")
+	funnel_y = rand(Normal(0, 3), 10_000)
+	funnel_x = rand(Normal(), 10_000) .* exp.(funnel_y / 2)
+	Plots.gr(dpi=300)
+	scatter((funnel_x, funnel_y),
+	        label=false, ma=0.3,
+	        xlabel=L"x", ylabel=L"y",
+	        xlims=(-100, 100))
 end
 
 # ╔═╡ c109b759-7b73-4593-b9ea-8cc97b61d6fe
@@ -690,6 +851,14 @@ NUTS can automatically set $\epsilon$ and $L$ during warmup (it can vary) but it
 
 So basically you are screwed if you do not reparametrize!
 """
+
+# ╔═╡ fe0fefb6-2755-4319-a944-bbbc7843aead
+begin
+	Plots.plotly(dpi=300)
+	x = -2:0.01:2;
+	kernel(x, y) = logpdf(Normal(0, exp(y / 2)), x)
+	surface(x, x, kernel, xlab="x", ylab="y", zlab="log(PDF)")
+end
 
 # ╔═╡ 60494b7c-1a08-4846-8a80-12533552a697
 md"""
@@ -723,7 +892,7 @@ Below there is is the Neal's Funnel reparameterized as standard normal:
 
 # ╔═╡ 438d437e-7b00-4a13-8f8a-87fdc332a190
 begin
-	Plots.plotly()
+	Plots.plotly(dpi=300)
 	kernel_reparameterized(x, y) = logpdf(Normal(), x)
 	surface(x, x,  kernel_reparameterized, xlab="x", ylab="y", zlab="log(PDF)")
 end
@@ -735,8 +904,77 @@ md"""
 
 # ╔═╡ 2eeb402e-c5f9-449c-af19-ff8f2e6c7246
 md"""
-To do...
+
+Back in "Linear Algebra 101" we've learned that any matrix (even retangular ones) can be factored into the product of two matrices:
+
+*  $\mathbf{Q}$: an orthogonal matrix (its columns are orthogonal unit vectors meaning $\mathbf{Q}^T = \mathbf{Q}^{-1})$.
+*  $\mathbf{R}$: an upper triangular matrix.
+
+This is commonly known as the [**QR Decomposition**](https://en.wikipedia.org/wiki/QR_decomposition):
+
+$$\mathbf{A} = \mathbf{Q} \cdot \mathbf{R}$$
+
+But what can we do with QR decomposition? It can speed up `Turing`'s sampling by a huge factor while also **decorrelating** the columns of $\mathbf{X}$, *i.e.* the independent variables.
+
+The orthogonal nature of QR decomposition alters the posterior's topology and makes it easier for HMC or other MCMC samplers to explore it.
+
+Now let's us incorporate QR decomposition in the logistic regression model.
+Here, I will use the "thin" instead of the "fat" QR, which scales the $\mathbf{Q}$ and $\mathbf{R}$ matrices by a factor of $\sqrt{n-1}$ where $n$ is the number of rows of $\mathbf{X}$. In practice it is better implement the thin QR decomposition, which is to be preferred to the fat QR decomposition. It is numerically more stable. Mathematically, the thin QR decomposition is:
+
+$$\begin{aligned}
+x &= \mathbf{Q}^* \mathbf{R}^* \\
+\mathbf{Q}^* &= \mathbf{Q} \cdot \sqrt{n - 1} \\
+\mathbf{R}^* &= \frac{1}{\sqrt{n - 1}} \cdot \mathbf{R}\\
+\boldsymbol{\mu}
+&= \alpha + \mathbf{X} \cdot \boldsymbol{\beta} \\
+&= \alpha + \mathbf{Q}^* \cdot \mathbf{R}^* \cdot \boldsymbol{\beta} \\
+&= \alpha + \mathbf{Q}^* \cdot (\mathbf{R}^* \cdot \boldsymbol{\beta}) \\
+&= \alpha + \mathbf{Q}^* \cdot \widetilde{\boldsymbol{\beta}} \\
+\end{aligned}$$
+
+Then we can recover original $\boldsymbol{\beta}$ with:
+
+$$\boldsymbol{\beta} = \mathbf{R}^{*-1} \cdot \widetilde{\boldsymbol{\beta}}$$
+
+Here's applied to our Logistic Regression example:
+
+> Look at the `ess` in both examples
 """
+
+# ╔═╡ 6870ca6d-256d-4a38-970e-1c26ceba9fa4
+begin
+	Q, R = qr(X_wells);
+	Q_ast = Matrix(Q) * sqrt(size(X_wells, 1) - 1);
+	R_ast = R / sqrt(size(X_wells, 1) - 1);
+end
+
+# ╔═╡ e5dac5c5-4644-443f-aa79-e43b399712c0
+begin
+	chain_log_reg = sample(logreg_vectorized(X_wells, y_wells), NUTS(1_000, 0.65), 2_000);
+	summarystats(chain_log_reg)
+end
+
+# ╔═╡ 85f98ea6-9351-4527-8b8e-b2827a7735ff
+begin
+	chain_qr = sample(logreg_vectorized(Q_ast, y_wells), NUTS(1_000, 0.65), 2_000);
+	summarystats(chain_qr)
+end
+
+# ╔═╡ 859ce60b-2f32-44d1-919a-dbdaf1be38fb
+md"""
+Now we have to reconstruct our $\boldsymbol{\beta}$s:
+
+> [`mapslices()`](https://docs.julialang.org/en/v1/base/arrays/#Base.mapslices) is a `Base` Julia function that maps a function `f` to each `slice` (column) of an `Array`.
+"""
+
+# ╔═╡ 0377939c-00ac-42ae-b981-cdc897421588
+begin
+	betas = mapslices(x -> R_ast^-1 * x, chain_qr[:, namesingroup(chain_qr, :β),:].value.data, dims=[2]);
+	
+	chain_qr_reconstructed = hcat(Chains(betas, ["real_β[$i]" for i in 1:size(Q_ast, 2)]), chain_qr);
+	
+	summarystats(chain_qr_reconstructed)
+end
 
 # ╔═╡ 2f907e0d-171e-44c3-a531-5f11da08b3cf
 md"""
@@ -752,7 +990,10 @@ md"""
 """
 
 # ╔═╡ 4af78efd-d484-4241-9d3c-97cc78e1dbd4
-Random.seed!(1)
+Random.seed!(1);
+
+# ╔═╡ 33ff5c03-94e3-44d7-9083-9f8bce9373f3
+Turing.setprogress!(false);
 
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
@@ -788,6 +1029,16 @@ md"""
 ## Environment
 """
 
+# ╔═╡ 50e01181-1911-426b-9228-4663a1297619
+with_terminal() do
+	deps = [pair.second for pair in Pkg.dependencies()]
+	deps = filter(p -> p.is_direct_dep, deps)
+	deps = filter(p -> !isnothing(p.version), deps)
+	list = ["$(p.name) $(p.version)" for p in deps]
+	sort!(list)
+	println(join(list, '\n'))
+end
+
 # ╔═╡ Cell order:
 # ╟─5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
 # ╟─dceb8312-230f-4e4b-9285-4e23f219b838
@@ -809,7 +1060,8 @@ md"""
 # ╟─07d408cf-d202-40b2-90c2-5e8630549339
 # ╠═744a8a63-647f-4550-adf7-44354fde44be
 # ╟─e6365296-cd68-430e-99c5-fb571f39aad5
-# ╠═927ad0a4-ba68-45a6-9bde-561915503e48
+# ╟─927ad0a4-ba68-45a6-9bde-561915503e48
+# ╠═ab6c2ba6-4cd8-473a-88c6-b8d61551fb22
 # ╟─2ab3c34a-1cfc-4d20-becc-5902d08d03e0
 # ╟─924fcad9-75c1-4707-90ef-3e36947d64fe
 # ╟─fc8e40c3-34a1-4b2e-bd1b-893d7998d359
@@ -817,7 +1069,22 @@ md"""
 # ╟─5674f7aa-3205-47c7-8367-244c6419ce69
 # ╠═83cc80c1-d97e-4b82-872e-e5493d2b62ab
 # ╟─c70ebb70-bd96-44a5-85e9-871b0e478b1a
-# ╠═dd5fbb2a-4220-4e47-945a-6870b799c50d
+# ╟─6630eb47-77f6-48e9-aafe-55bda275449c
+# ╠═37e751c7-8b6c-47d9-8013-97015d1e1fb2
+# ╟─7a21e7a0-322b-4f8e-9d8b-a2f452f7e092
+# ╟─f8f59ebb-bb1e-401f-97b5-507634badb3f
+# ╠═15795f79-7d7b-43d2-a4b4-99ad968a7f72
+# ╟─dd5fbb2a-4220-4e47-945a-6870b799c50d
+# ╟─0cc8e12c-9b72-41ec-9c13-d9ae0bdc6100
+# ╠═fce0f511-3b00-4079-85c6-9b2d2d7c04cb
+# ╟─5ba6b247-8277-4100-abe7-8d06af04a011
+# ╠═0f000fc4-1a7b-4522-8355-8df572ee8800
+# ╠═8a87e324-f3d9-4162-88ab-3833a6d1fc2e
+# ╟─3c954cbc-aed7-4d22-b578-a80ce62ebb49
+# ╟─521e2473-1aba-43be-951a-25537062891e
+# ╟─bafc91d2-8cae-4af8-b5ed-8199eef40c4d
+# ╟─a2292bc1-3379-450d-beb5-ae8f41b69be8
+# ╟─38055b57-f983-4440-bef5-0ab6d180ff1e
 # ╟─7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
 # ╠═c64d355f-f5a2-46a5-86f3-2d02da98f305
 # ╟─9ebac6ba-d213-4ed8-a1d5-66b841fafa00
@@ -854,18 +1121,26 @@ md"""
 # ╟─7f1fd9b4-517a-4fec-89bb-4d696dadbc3d
 # ╟─81e29fc7-b5d3-46d8-aeac-fb8e6dc11b16
 # ╟─5291b260-9a68-4c8b-aff4-7797804ccc95
-# ╟─fe0fefb6-2755-4319-a944-bbbc7843aead
+# ╟─08dbe330-670d-48d5-b704-2421e687bff1
 # ╟─c109b759-7b73-4593-b9ea-8cc97b61d6fe
+# ╟─fe0fefb6-2755-4319-a944-bbbc7843aead
 # ╟─60494b7c-1a08-4846-8a80-12533552a697
 # ╟─b57195f9-c2a1-4676-96f9-faee84f7fc26
 # ╟─438d437e-7b00-4a13-8f8a-87fdc332a190
 # ╟─26265a91-2c8e-46d8-9a87-a2d097e7433a
-# ╠═2eeb402e-c5f9-449c-af19-ff8f2e6c7246
+# ╟─2eeb402e-c5f9-449c-af19-ff8f2e6c7246
+# ╠═6870ca6d-256d-4a38-970e-1c26ceba9fa4
+# ╠═e5dac5c5-4644-443f-aa79-e43b399712c0
+# ╠═85f98ea6-9351-4527-8b8e-b2827a7735ff
+# ╟─859ce60b-2f32-44d1-919a-dbdaf1be38fb
+# ╠═0377939c-00ac-42ae-b981-cdc897421588
 # ╟─2f907e0d-171e-44c3-a531-5f11da08b3cf
 # ╠═31b6d4ec-d057-44ca-875b-0c3257895dd3
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
 # ╟─b75f8003-85d4-4bb7-96cf-b6d7881b0e7c
 # ╠═4af78efd-d484-4241-9d3c-97cc78e1dbd4
+# ╠═33ff5c03-94e3-44d7-9083-9f8bce9373f3
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 # ╟─634c9cc1-5a93-42b4-bf51-17dadfe488d6
 # ╟─31161289-1d4c-46ba-8bd9-e687fb7da29e
+# ╟─50e01181-1911-426b-9228-4663a1297619
