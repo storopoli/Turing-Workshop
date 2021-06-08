@@ -58,6 +58,12 @@ begin
 	end
 end
 
+# ╔═╡ 4af78efd-d484-4241-9d3c-97cc78e1dbd4
+begin
+	Turing.setprogress!(false);
+	Random.seed!(1);
+end
+
 # ╔═╡ 5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
 md"""
 # Turing Workshop
@@ -160,6 +166,20 @@ p &\sim \text{Beta}(1,1) \\
 # ╔═╡ b1d99482-53f5-4c6b-8c20-c761ff6bdb77
 coin_flips = rand(Bernoulli(0.7), 100);
 
+# ╔═╡ 65fa382d-4ef7-432d-8630-27082977185b
+@model coin(coin_flips) = begin
+	p ~ Beta(1, 1)
+	for i ∈ 1:length(coin_flips)
+		coin_flips[i] ~ Bernoulli(p)
+	end
+end;
+
+# ╔═╡ 06f93734-2315-4b36-a39a-09e8167bab1f
+begin
+	chain_coin = sample(coin(coin_flips), MH(), 100);
+	summarystats(chain_coin)
+end
+
 # ╔═╡ 9f6b96a7-033d-4c7d-a853-46a0b5af4675
 md"""
 ## 3. How to specify a MCMC sampler (`NUTS`, `HMC`, `MH` etc.)
@@ -201,6 +221,12 @@ begin
 	end
 end
 
+# ╔═╡ 744a8a63-647f-4550-adf7-44354fde44be
+begin
+	chain_coin_2 = sample(coin(coin_flips), your_sampler, 100); # Here is your sampler
+	summarystats(chain_coin_2)
+end
+
 # ╔═╡ e6365296-cd68-430e-99c5-fb571f39aad5
 md"""
 ### 3.1 MOAH CHAINS!!: `MCMCThreads` and `MCMCDistributed`
@@ -220,6 +246,12 @@ Just use `sample(model, sampler, MCMCThreads(), N, chains)`
 
 Let's revisit our biased-coin example:
 """
+
+# ╔═╡ ab6c2ba6-4cd8-473a-88c6-b8d61551fb22
+begin
+	chain_coin_parallel = sample(coin(coin_flips), MH(), MCMCThreads(), 100, 2);
+	summarystats(chain_coin_parallel)
+end
 
 # ╔═╡ 2ab3c34a-1cfc-4d20-becc-5902d08d03e0
 md"""
@@ -247,6 +279,9 @@ The workflow we do when specifying and sampling Bayesian models is not linear or
 This is quite easy in `Turing`. We need to create a *prior* distribution for our model. To accomplish this, instead of supplying a MCMC sampler like `NUTS()` or `MH()`, we supply the "sampler" `Prior()` inside `Turing`'s `sample()` function:
 """
 
+# ╔═╡ 0fe83f55-a379-49ea-ab23-9defaab05890
+prior_chain_coin = sample(coin(coin_flips), Prior(), 100);
+
 # ╔═╡ 3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
 md"""
 Now we can perform predictive checks using both the *prior* (`prior_chain_coin`) or *posterior* (`chain_coin`) distributions. To draw from the prior and posterior predictive distributions we instantiate a "predictive model", i.e. a `Turing` model but with the observations set to `missing`, and then calling `predict()` on the predictive model and the previously drawn samples.
@@ -255,6 +290,14 @@ Let's do the *prior* predictive check:
 
 > The *posterior* predictive check is trivial, just do the same but with the posterior `chain`.
 """
+
+# ╔═╡ dd27ee5f-e442-42d7-a39b-d76328d2e59f
+begin
+	missing_data = Vector{Missing}(missing, 1); # vector of `missing`
+	model_predict = coin(missing_data); # instantiate the "predictive model"
+	prior_check = predict(model_predict, prior_chain_coin);
+	summarystats(prior_check)
+end
 
 # ╔═╡ 5674f7aa-3205-47c7-8367-244c6419ce69
 md"""
@@ -271,12 +314,30 @@ We can inspect and plot our model's chains and its underlying parameters with [`
    * What if I just want a **subset** of parameters?: just do `group(chain, :parameter)` or index with `chain[:, 1:6, :]`
 """
 
+# ╔═╡ 475be60f-1876-4086-9725-3bf5f52a3e43
+summarystats(chain_coin_parallel)
+
+# ╔═╡ f6bc0cfd-a1d9-48e5-833c-f33bf1b89d45
+quantile(chain_coin_parallel)
+
+# ╔═╡ ed640696-cae6-47e1-a4df-0655192e0855
+quantile(group(chain_coin_parallel, :p))
+
+# ╔═╡ bc9fa101-8854-4af5-904a-f0b683fb63b1
+summarystats(chain_coin_parallel[:, 1:1, :])
+
 # ╔═╡ c82687d1-89d0-4ecd-bed7-1708ba8b2662
 md"""
 2. **Plotting Chains**: Now we have several options. The default `plot()` recipe will plot a `traceplot()` side-by-side with a `mixeddensity()`.
 
    First, we have to choose either to plot **parameters**(`:parameter`) or **chains**(`:chain`) with the keyword `colordim`.
 """
+
+# ╔═╡ 270c0b90-cce1-4092-9e29-5f9deda2cb7d
+plot(chain_coin_parallel; colordim=:chain, dpi=300)
+
+# ╔═╡ c4146b8b-9d11-446e-9765-8d5283a6d445
+plot(chain_coin_parallel; colordim=:parameter, dpi=300)
 
 # ╔═╡ 3d09c8c3-ce95-4f26-9136-fedd601e2a70
 md"""
@@ -289,10 +350,24 @@ Second, we have several plots to choose from:
 * `autcorplot()`: **autocorrelation** plots
 """
 
+# ╔═╡ 8d9bdae2-658d-45bf-9b25-50b6efbe0cdf
+plot(
+	traceplot(chain_coin_parallel, title="traceplot"),
+	meanplot(chain_coin_parallel, title="meanplot"),
+	density(chain_coin_parallel, title="density"),
+	histogram(chain_coin_parallel, title="histogram"),
+	mixeddensity(chain_coin_parallel, title="mixeddensity"),
+	autocorplot(chain_coin_parallel, title="autocorplot"),
+	dpi=300, size=(840, 600)
+)
+
 # ╔═╡ 41b014c2-7b49-4d03-8741-51c91b95f64c
 md"""
 There is also the option to **construct your own plot** with `plot()` and the keyword `seriestype`:
 """
+
+# ╔═╡ 2f08c6e4-fa7c-471c-ad9f-9d036e3027d5
+plot(chain_coin_parallel, seriestype = (:meanplot, :autocorplot), dpi=300)
 
 # ╔═╡ 5f639d2d-bb96-4a33-a78e-d5b9f0e8d274
 md"""
@@ -304,6 +379,11 @@ Finally there is one special plot that makes a **cornerplot** (requires `StatPlo
 # ╔═╡ c70ebb70-bd96-44a5-85e9-871b0e478b1a
 md"""
 ## 5. Better tricks to avoid `for`-loops inside `@model` (`lazyarrays` and `filldist`)
+"""
+
+# ╔═╡ 36258bdd-f617-48f6-91c9-e8bbff78ebd8
+md"""
+**Using Logistic Regression**
 """
 
 # ╔═╡ 6630eb47-77f6-48e9-aafe-55bda275449c
@@ -451,8 +531,13 @@ md"""
 
 # ╔═╡ c64d355f-f5a2-46a5-86f3-2d02da98f305
 md"""
-To do...
+Bayesian **hierarchical** models (also called **multilevel** models) are a statistical model written at **multiple levels** (hierarchical form) that estimates the parameters of the posterior distribution using the Bayesian approach. The sub-models combine to form the hierarchical model, and **Bayes' theorem is used to integrate them with the observed data** and to account for all the **uncertainty** that is present.
+
+Hierarchical modeling is used when **information is available at several different levels of observation units**. The hierarchical form of analysis and organization helps to understand multiparameter problems and also plays an important role in the development of computational strategies.
 """
+
+# ╔═╡ 3ecc92b8-6a10-4f51-93d7-72449e248dc2
+
 
 # ╔═╡ 9ebac6ba-d213-4ed8-a1d5-66b841fafa00
 md"""
@@ -477,6 +562,13 @@ md"""
 
 # ╔═╡ c1b2d007-1004-42f5-b65c-b4e2e7ff7d8e
 Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/HMM.png?raw=true", :width => 400)
+
+# ╔═╡ c1dcfd47-9e25-470b-a1b3-ab66bfac59d6
+md"""
+ $\mu_1$ = $(@bind μ₁_sim Slider(1:1:10, default = 1, show_value=true))
+
+ $\mu_2$ = $(@bind μ₂_sim Slider(1:1:10, default = 5, show_value=true))
+"""
 
 # ╔═╡ f1153918-0748-4400-ae8b-3b59f8c5d755
 md"""
@@ -582,11 +674,26 @@ begin
 	end
 end
 
-# ╔═╡ 6c04af9b-02af-408d-b9cb-de95ab970f83
+# ╔═╡ 46ba21ab-bce5-4eed-bd63-aae7340c8180
 begin
+	# State-Dependent Gaussian means
+	μ_sim = [μ₁_sim, μ₂_sim]
+	
+	S_sim = Vector{Int64}(undef, n_obs)
+	y_sim = Vector{Float64}(undef, n_obs)
+	
+	# initialise state and observation
+	S_sim[1] = sample(1:T, aweights(δ))
+	y_sim[1] = rand(Normal(μ[S[1]], 2))
+	
+	# simulate state and observation processes forward
+	for t in 2:n_obs
+	    S_sim[t] = sample(1:T, aweights(Γ[S_sim[t - 1], :]))
+	    y_sim[t] = rand(Normal(μ_sim[S_sim[t]], 2))
+	end
 	Plots.gr(dpi=300)
-	scatter(y, mc= S, xlabel=L"t", ylabel=L"y", label=false)
-	hline!([1,5], lw=4, label=false, c=:black, style=:dash)
+	scatter(y_sim, mc= S_sim, xlabel=L"t", ylabel=L"y", label=false, ylim=(-5,13), yticks=(vcat(0, μ_sim, 10), vcat("0", "μ₁", "μ₂", "10")))
+	hline!([μ₁_sim,μ₂_sim], lw=4, label=false, c=:black, style=:dash)
 end
 
 # ╔═╡ 5d3d2abb-85e3-4371-926e-61ff236253f1
@@ -744,95 +851,26 @@ function sir_ode!(du, u, p, t)
 
 # ╔═╡ 92e17d42-c6d1-4891-99a9-4a3be9e2decf
 md"""
-I₀ = $(@bind I₀ Slider(1:1:20, default = 1, show_value=true))
+ $I_0$ = $(@bind I₀ Slider(1:1:20, default = 1, show_value=true))
 
-β = $(@bind sim_β Slider(0.1:0.2:3, default = 1.9, show_value=true))
+ $\beta$ = $(@bind sim_β Slider(0.1:0.2:3, default = 1.9, show_value=true))
 
-γ = $(@bind sim_γ Slider(0.1:0.1:1.5, default = 0.9, show_value=true))
+ $\gamma$ = $(@bind sim_γ Slider(0.1:0.1:1.5, default = 0.9, show_value=true))
 """
 
 # ╔═╡ 39902541-5243-4fa9-896c-36db93d9fcea
 begin
 	u = [763, I₀, 0];
-	p = [sim_β, sim_γ];
-	tspan_sim = (0.0, 20.0);
-end
-
-# ╔═╡ 65fa382d-4ef7-432d-8630-27082977185b
-@model coin(coin_flips) = begin
-	p ~ Beta(1, 1)
-	for i ∈ 1:length(coin_flips)
-		coin_flips[i] ~ Bernoulli(p)
-	end
-end;
-
-# ╔═╡ 06f93734-2315-4b36-a39a-09e8167bab1f
-begin
-	chain_coin = sample(coin(coin_flips), MH(), 100);
-	summarystats(chain_coin)
-end
-
-# ╔═╡ 744a8a63-647f-4550-adf7-44354fde44be
-begin
-	chain_coin_2 = sample(coin(coin_flips), your_sampler, 100); # Here is your sampler
-	summarystats(chain_coin_2)
-end
-
-# ╔═╡ ab6c2ba6-4cd8-473a-88c6-b8d61551fb22
-begin
-	chain_coin_parallel = sample(coin(coin_flips), MH(), MCMCThreads(), 100, 2);
-	summarystats(chain_coin_parallel)
-end
-
-# ╔═╡ 475be60f-1876-4086-9725-3bf5f52a3e43
-summarystats(chain_coin_parallel)
-
-# ╔═╡ f6bc0cfd-a1d9-48e5-833c-f33bf1b89d45
-quantile(chain_coin_parallel)
-
-# ╔═╡ ed640696-cae6-47e1-a4df-0655192e0855
-quantile(group(chain_coin_parallel, :p))
-
-# ╔═╡ bc9fa101-8854-4af5-904a-f0b683fb63b1
-summarystats(chain_coin_parallel[:, 1:1, :])
-
-# ╔═╡ 270c0b90-cce1-4092-9e29-5f9deda2cb7d
-plot(chain_coin_parallel; colordim=:chain, dpi=300)
-
-# ╔═╡ c4146b8b-9d11-446e-9765-8d5283a6d445
-plot(chain_coin_parallel; colordim=:parameter, dpi=300)
-
-# ╔═╡ 8d9bdae2-658d-45bf-9b25-50b6efbe0cdf
-plot(
-	traceplot(chain_coin_parallel, title="traceplot"),
-	meanplot(chain_coin_parallel, title="meanplot"),
-	density(chain_coin_parallel, title="density"),
-	histogram(chain_coin_parallel, title="histogram"),
-	mixeddensity(chain_coin_parallel, title="mixeddensity"),
-	autocorplot(chain_coin_parallel, title="autocorplot"),
-	dpi=300, size=(840, 600)
-)
-
-# ╔═╡ 2f08c6e4-fa7c-471c-ad9f-9d036e3027d5
-plot(chain_coin_parallel, seriestype = (:meanplot, :autocorplot), dpi=300)
-
-# ╔═╡ 0fe83f55-a379-49ea-ab23-9defaab05890
-prior_chain_coin = sample(coin(coin_flips), Prior(), 100);
-
-# ╔═╡ dd27ee5f-e442-42d7-a39b-d76328d2e59f
-begin
-	missing_data = Vector{Missing}(missing, 1); # vector of `missing`
-	model_predict = coin(missing_data); # instantiate the "predictive model"
-	prior_check = predict(model_predict, prior_chain_coin);
-	summarystats(prior_check)
+	p_sim = [sim_β, sim_γ];
+	tspan_sim = (0.0, 15.0);
 end
 
 # ╔═╡ 646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 begin
 	Plots.gr(dpi=300)
-	prob = ODEProblem(sir_ode!, u, tspan_sim, p)
-	sol = solve(prob, Tsit5(), saveat=1.0)
-	plot(sol, label=[L"S" L"I" L"R"], lw=3)
+	problem = ODEProblem(sir_ode!, [763, I₀, 0], tspan_sim, p_sim)
+	solution = solve(problem, Tsit5(), saveat=1.0)
+	plot(solution, label=[L"S" L"I" L"R"], lw=3)
 	xlabel!("days")
 	ylabel!("N")
 end
@@ -854,6 +892,9 @@ begin
 	boarding_school = CSV.read(download("https://github.com/storopoli/Turing-Workshop/blob/master/data/influenza_england_1978_school.csv?raw=true"), DataFrame);
 	cases = boarding_school.in_bed;
 end
+
+# ╔═╡ b0cc8694-b7ab-4d23-a208-055299840334
+plot(boarding_school.date, cases, markershape=:o, dpi=300, xlab=L"t", ylab="cases", label=false, title="Boarding School H1N1 Outbreak")
 
 # ╔═╡ 680f104e-80b4-443f-b4bc-532df758c162
 md"""
@@ -1095,17 +1136,6 @@ md"""
 # ╔═╡ 31b6d4ec-d057-44ca-875b-0c3257895dd3
 PlutoUI.TableOfContents(aside=true)
 
-# ╔═╡ b75f8003-85d4-4bb7-96cf-b6d7881b0e7c
-md"""
-## Backup Computations
-"""
-
-# ╔═╡ 4af78efd-d484-4241-9d3c-97cc78e1dbd4
-Random.seed!(1);
-
-# ╔═╡ 33ff5c03-94e3-44d7-9083-9f8bce9373f3
-Turing.setprogress!(false);
-
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
 ## References
@@ -1151,6 +1181,7 @@ with_terminal() do
 end
 
 # ╔═╡ Cell order:
+# ╟─4af78efd-d484-4241-9d3c-97cc78e1dbd4
 # ╟─5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
 # ╟─dceb8312-230f-4e4b-9285-4e23f219b838
 # ╟─cda7dc96-d983-4e31-9298-6148205b54b1
@@ -1196,6 +1227,7 @@ end
 # ╟─5f639d2d-bb96-4a33-a78e-d5b9f0e8d274
 # ╠═3f7c469a-c366-49dd-b09c-ae9b2b5db3fd
 # ╟─c70ebb70-bd96-44a5-85e9-871b0e478b1a
+# ╟─36258bdd-f617-48f6-91c9-e8bbff78ebd8
 # ╟─6630eb47-77f6-48e9-aafe-55bda275449c
 # ╠═37e751c7-8b6c-47d9-8013-97015d1e1fb2
 # ╟─7a21e7a0-322b-4f8e-9d8b-a2f452f7e092
@@ -1213,11 +1245,14 @@ end
 # ╟─a2292bc1-3379-450d-beb5-ae8f41b69be8
 # ╟─38055b57-f983-4440-bef5-0ab6d180ff1e
 # ╟─7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
-# ╠═c64d355f-f5a2-46a5-86f3-2d02da98f305
+# ╟─c64d355f-f5a2-46a5-86f3-2d02da98f305
+# ╠═3ecc92b8-6a10-4f51-93d7-72449e248dc2
 # ╟─9ebac6ba-d213-4ed8-a1d5-66b841fafa00
 # ╟─45c342fd-b893-46aa-b2ee-7c93e7a1d207
 # ╟─d44c7baa-80d2-4fdb-a2de-35806477dd58
 # ╟─c1b2d007-1004-42f5-b65c-b4e2e7ff7d8e
+# ╟─c1dcfd47-9e25-470b-a1b3-ab66bfac59d6
+# ╟─46ba21ab-bce5-4eed-bd63-aae7340c8180
 # ╟─f1153918-0748-4400-ae8b-3b59f8c5d755
 # ╟─ad6c4533-cd56-4f6f-b10d-d7bc3145ba16
 # ╟─2ef397a6-f7fb-4fc2-b918-40ab545ce19f
@@ -1225,7 +1260,6 @@ end
 # ╟─ca962c0e-4620-4888-b7c3-aa7f6d7899e9
 # ╟─6fd49295-d0e3-4b54-aeae-e9cd07a5281c
 # ╠═58c5460f-c7f4-4a0a-9e18-71b9580e9148
-# ╟─6c04af9b-02af-408d-b9cb-de95ab970f83
 # ╟─5d3d2abb-85e3-4371-926e-61ff236253f1
 # ╟─247a02e5-8599-43fd-9ee5-32ba8b827477
 # ╟─6db0245b-0461-4db0-9462-7a5f80f7d589
@@ -1236,11 +1270,12 @@ end
 # ╟─f2272fd5-5132-4a6e-b2ff-136dc2fb2903
 # ╟─2d230fea-dcf2-41e6-a477-2a2334f56990
 # ╠═44f9935f-c5a5-4f08-a94b-7f6ee70df358
-# ╠═39902541-5243-4fa9-896c-36db93d9fcea
+# ╟─39902541-5243-4fa9-896c-36db93d9fcea
 # ╟─92e17d42-c6d1-4891-99a9-4a3be9e2decf
-# ╠═646ab8dc-db5a-4eb8-a08b-217c2f6d86be
+# ╟─646ab8dc-db5a-4eb8-a08b-217c2f6d86be
 # ╟─5c017766-445d-4f4b-98f1-ae63e78ec34b
 # ╠═0a76f019-4853-4ba3-9af8-9f33e1d4c956
+# ╟─b0cc8694-b7ab-4d23-a208-055299840334
 # ╟─680f104e-80b4-443f-b4bc-532df758c162
 # ╠═ddfc38fc-b47d-4ea5-847a-e9cbee3aa0a1
 # ╠═ee2616ca-2602-4823-9cfb-123b958701c4
@@ -1265,9 +1300,6 @@ end
 # ╟─2f907e0d-171e-44c3-a531-5f11da08b3cf
 # ╠═31b6d4ec-d057-44ca-875b-0c3257895dd3
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
-# ╟─b75f8003-85d4-4bb7-96cf-b6d7881b0e7c
-# ╠═4af78efd-d484-4241-9d3c-97cc78e1dbd4
-# ╠═33ff5c03-94e3-44d7-9083-9f8bce9373f3
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 # ╟─634c9cc1-5a93-42b4-bf51-17dadfe488d6
 # ╟─31161289-1d4c-46ba-8bd9-e687fb7da29e
