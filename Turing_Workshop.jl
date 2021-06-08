@@ -536,8 +536,152 @@ Bayesian **hierarchical** models (also called **multilevel** models) are a stati
 Hierarchical modeling is used when **information is available at several different levels of observation units**. The hierarchical form of analysis and organization helps to understand multiparameter problems and also plays an important role in the development of computational strategies.
 """
 
-# ╔═╡ 3ecc92b8-6a10-4f51-93d7-72449e248dc2
+# ╔═╡ 262cb245-0bc1-4a36-b0bc-de52c08ccde0
+md"""
+"Even though observations directly inform only a single set of parameters, the latent population model couples the individual parameters and provides a backdoor for observations to inform all of the contexts. For example the observations from the $k$th context, $y_k$, directly inform the parameters that quantify the behavior of that context, $\theta_k$. Those parameters, however, directly inform the population parameters $\phi$ which then inform all of the other contexts through the population model. Similarly observations that directly inform the other contexts indirectly inform the population parameters which then feeds back into the $k$th context."
 
+[Betancourt (2020)](https://betanalpha.github.io/assets/case_studies/hierarchical_modeling.html)
+"""
+
+# ╔═╡ 3ecc92b8-6a10-4f51-93d7-72449e248dc2
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/multilevel_models.png?raw=true", :width => 1_000)
+
+# ╔═╡ a0c7ca50-3a3f-483c-ae01-fd774e0c072d
+md"""
+> figure adapted from [Michael Betancourt (CC-BY-SA-4.0)](https://betanalpha.github.io/assets/case_studies/hierarchical_modeling.html)
+"""
+
+# ╔═╡ cb3dd785-11ff-42fe-ab85-0dd03e45209e
+md"""
+### 6.1 Hyperprior
+
+As the priors of the parameters are sampled from another prior of the hyperparameter (upper-level's parameter), which are called hyperpriors. This makes one group's estimates help the model to better estimate the other groups by providing more **robust and stable estimates**.
+
+We call the global parameters as **population effects** (or population-level effects, also sometimes called fixed effects) and the parameters of each group as **group effects** (or group-level effects, also sometimes called random effects). That is why multilevel models are also known as mixed models in which we have both fixed effects and random effects.
+"""
+
+# ╔═╡ 4812f80e-79a9-4519-9e4d-a45127ca6a49
+md"""
+### 6.2 Three Approaches to Multilevel Models
+
+Multilevel models generally fall into three approaches:
+
+1. **Random-intercept model**: each group receives a **different intercept** in addition to the global intercept.
+
+2. **Random-slope model**: each group receives **different coefficients** for each (or a subset of) independent variable(s) in addition to a global intercept.
+
+3. **Random-intercept-slope model**: each group receives **both a different intercept and different coefficients(( for each independent variable in addition to a global intercept.
+"""
+
+# ╔═╡ 318697fe-1fbc-4ac3-a2aa-5ecf775072d4
+md"""
+#### Random-Intercept Model
+
+The first approach is the **random-intercept model** in which we specify a different intercept for each group,
+in addition to the global intercept. These group-level intercepts are sampled from a hyperprior.
+
+To illustrate a multilevel model, I will use a linear regression example with a Gaussian/normal likelihood function.
+Mathematically a Bayesian multilevel random-slope linear regression model is:
+
+$$\begin{aligned}
+\mathbf{y} &\sim \text{Normal}\left( \alpha + \alpha_j + \mathbf{X} \cdot \boldsymbol{\beta}, \sigma \right) \\
+\alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\
+\alpha_j &\sim \text{Normal}(0, \tau) \\
+\boldsymbol{\beta} &\sim \text{Normal}(\mu_{\boldsymbol{\beta}}, \sigma_{\boldsymbol{\beta}}) \\
+\tau &\sim \text{Cauchy}^+(0, \psi_{\alpha})\\
+\sigma &\sim \text{Exponential}(\lambda_\sigma)
+\end{aligned}$$
+"""
+
+# ╔═╡ 9acc7a1c-f638-4a2e-ad67-c16cff125c86
+@model varying_intercept(X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2)) = begin
+    # priors
+    α ~ Normal(mean(y), 2.5 * std(y))       # population-level intercept
+    β ~ filldist(Normal(0, 2), predictors)  # population-level coefficients
+    σ ~ Exponential(1 / std(y))             # residual SD
+    
+	# prior for variance of random intercepts
+    # usually requires thoughtful specification
+    τ ~ truncated(Cauchy(0, 2), 0, Inf)     # group-level SDs intercepts
+    αⱼ ~ filldist(Normal(0, τ), n_gr)       # group-level intercepts
+
+    # likelihood
+    ŷ = α .+ X * β .+ αⱼ[idx]
+    y ~ MvNormal(ŷ, σ)
+end;
+
+# ╔═╡ 885fbe97-edd6-44d2-808d-8eeb1e9cb2b4
+md"""
+### Random-Slope Model
+
+The second approach is the **random-slope model** in which we specify a different slope for each group,
+in addition to the global intercept. These group-level slopes are sampled from a hyperprior.
+
+To illustrate a multilevel model, I will use a linear regression example with a Gaussian/normal likelihood function.
+Mathematically a Bayesian multilevel random-slope linear regression model is:
+
+$$\begin{aligned}
+\mathbf{y} &\sim \text{Normal}\left( \alpha + \mathbf{X} \cdot \boldsymbol{\beta}_j \cdot \boldsymbol{\tau}, \sigma \right) \\
+\alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\
+\boldsymbol{\beta}_j &\sim \text{Normal}(0, 1) \\
+\boldsymbol{\tau} &\sim \text{Cauchy}^+(0, \psi_{\boldsymbol{\beta}})\\
+\sigma &\sim \text{Exponential}(\lambda_\sigma)
+\end{aligned}$$
+"""
+
+# ╔═╡ 7f526d1f-bd56-4e51-9f7b-ce6b5a2a1853
+@model varying_slope(X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2)) = begin
+    # priors
+    α ~ Normal(mean(y), 2.5 * std(y))                   # population-level intercept
+    σ ~ Exponential(1 / std(y))                         # residual SD
+    
+	# prior for variance of random slopes
+    # usually requires thoughtful specification
+    τ ~ filldist(truncated(Cauchy(0, 2), 0, Inf), n_gr) # group-level slopes SDs
+    βⱼ ~ filldist(Normal(0, 1), predictors, n_gr)       # group-level standard normal slopes
+
+    # likelihood
+    ŷ = α .+ X * βⱼ * τ
+    y ~ MvNormal(ŷ, σ)
+end;
+
+# ╔═╡ f7971da6-ead8-4679-b8cf-e3c35c93e6cf
+md"""
+The third approach is the **random-slope model** in which we specify a different intercept
+and  slope for each group, in addition to the global intercept.
+These group-level intercepts and slopes are sampled from hyperpriors.
+
+To illustrate a multilevel model, I will use a linear regression example with a Gaussian/normal likelihood function.
+Mathematically a Bayesian multilevel random-intercept-slope linear regression model is:
+
+$$\begin{aligned}
+\mathbf{y} &\sim \text{Normal}\left( \alpha + \alpha_j + \mathbf{X} \cdot \boldsymbol{\beta}_j \cdot \boldsymbol{\tau}_{\boldsymbol{\beta}}, \sigma \right) \\
+\alpha &\sim \text{Normal}(\mu_\alpha, \sigma_\alpha) \\
+\alpha_j &\sim \text{Normal}(0, \tau_{\alpha}) \\
+\boldsymbol{\beta}_j &\sim \text{Normal}(0, 1) \\
+\tau_{\alpha} &\sim \text{Cauchy}^+(0, \psi_{\alpha})\\
+\boldsymbol{\tau}_{\boldsymbol{\beta}} &\sim \text{Cauchy}^+(0, \psi_{\boldsymbol{\beta}})\\
+\sigma &\sim \text{Exponential}(\lambda_\sigma)
+\end{aligned}$$
+"""
+
+# ╔═╡ 546726af-5420-4a4f-8c0c-fe96a2ba43bc
+@model varying_intercept_slope(X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2)) = begin
+    # priors
+    α ~ Normal(mean(y), 2.5 * std(y))                    # population-level intercept
+    σ ~ Exponential(1 / std(y))                          # residual SD
+    
+	# prior for variance of random intercepts and slopes
+    # usually requires thoughtful specification
+    τₐ ~ truncated(Cauchy(0, 2), 0, Inf)                 # group-level SDs intercepts
+    τᵦ ~ filldist(truncated(Cauchy(0, 2), 0, Inf), n_gr) # group-level slopes SDs
+    αⱼ ~ filldist(Normal(0, τₐ), n_gr)                   # group-level intercepts
+    βⱼ ~ filldist(Normal(0, 1), predictors, n_gr)        # group-level standard normal slopes
+
+    # likelihood
+    ŷ = α .+ αⱼ[idx] .+ X * βⱼ * τᵦ
+    y ~ MvNormal(ŷ, σ)
+end;
 
 # ╔═╡ 9ebac6ba-d213-4ed8-a1d5-66b841fafa00
 md"""
@@ -1045,8 +1189,36 @@ end
 # ╔═╡ 800fe4ba-e1a4-4e94-929f-7d66516e7bd6
 md"""
 #### Non-Centered Reparametrization of a Hierarchical Model
+"""
 
-To do...
+# ╔═╡ 7d5a29c6-e71e-4ccb-a1c2-7fba663f038c
+@model varying_intercept_ncp(X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2)) = begin
+    # priors
+    α ~ Normal(mean(y), 2.5 * std(y))       # population-level intercept
+    β ~ filldist(Normal(0, 2), predictors)  # population-level coefficients
+    σ ~ Exponential(1 / std(y))             # residual SD
+
+	# prior for variance of random intercepts
+    # usually requires thoughtful specification
+    τ ~ truncated(Cauchy(0, 2), 0, Inf)    # group-level SDs intercepts
+    zⱼ ~ filldist(Normal(0, 1), n_gr)      # NCP group-level intercepts
+
+    # likelihood
+    ŷ = α .+ X * β .+ zⱼ[idx] .* τ
+    y ~ MvNormal(ŷ, σ)
+end;
+
+# ╔═╡ 3364e9f6-b2af-45f1-b1f3-ef7b0cd4910a
+md"""
+To reconstruct the original `αⱼ`s just multiply `zⱼ[idx] .* τ`:
+
+```julia
+τ = summarystats(chain_ncp)[:τ, :mean]
+αⱼ = mapslices(x -> x * τ, chain_ncp[:,namesingroup(chain_ncp, :zⱼ),:].value.data, dims=[2])
+chain_ncp_reconstructed = hcat(Chains(αⱼ, ["αⱼ[$i]" for i in 1:length(unique(idx))]), chain_ncp)
+```
+
+> [`mapslices()`](https://docs.julialang.org/en/v1/base/arrays/#Base.mapslices) is a `Base` Julia function that maps a function `f` to each `slice` (column) of an `Array`.
 """
 
 # ╔═╡ 26265a91-2c8e-46d8-9a87-a2d097e7433a
@@ -1139,6 +1311,8 @@ PlutoUI.TableOfContents(aside=true)
 # ╔═╡ 98ece9fe-dfcc-4dd8-bd47-049217d2afcf
 md"""
 ## References
+
+Betancourt, M. (2020). Hierarchical Modeling. Available on: https://betanalpha.github.io/assets/case_studies/hierarchical_modeling.html
 
 Damiano, L., Peterson, B., & Weylandt, M. (2017). A Tutorial on Hidden Markov Models using Stan. https://github.com/luisdamiano/stancon18 (Original work published 2017)
 
@@ -1246,7 +1420,17 @@ end
 # ╟─38055b57-f983-4440-bef5-0ab6d180ff1e
 # ╟─7d4d06ca-f96d-4b1e-860f-d9e0d6eb6723
 # ╟─c64d355f-f5a2-46a5-86f3-2d02da98f305
-# ╠═3ecc92b8-6a10-4f51-93d7-72449e248dc2
+# ╟─262cb245-0bc1-4a36-b0bc-de52c08ccde0
+# ╟─3ecc92b8-6a10-4f51-93d7-72449e248dc2
+# ╟─a0c7ca50-3a3f-483c-ae01-fd774e0c072d
+# ╟─cb3dd785-11ff-42fe-ab85-0dd03e45209e
+# ╟─4812f80e-79a9-4519-9e4d-a45127ca6a49
+# ╟─318697fe-1fbc-4ac3-a2aa-5ecf775072d4
+# ╠═9acc7a1c-f638-4a2e-ad67-c16cff125c86
+# ╟─885fbe97-edd6-44d2-808d-8eeb1e9cb2b4
+# ╠═7f526d1f-bd56-4e51-9f7b-ce6b5a2a1853
+# ╟─f7971da6-ead8-4679-b8cf-e3c35c93e6cf
+# ╠═546726af-5420-4a4f-8c0c-fe96a2ba43bc
 # ╟─9ebac6ba-d213-4ed8-a1d5-66b841fafa00
 # ╟─45c342fd-b893-46aa-b2ee-7c93e7a1d207
 # ╟─d44c7baa-80d2-4fdb-a2de-35806477dd58
@@ -1289,7 +1473,9 @@ end
 # ╟─60494b7c-1a08-4846-8a80-12533552a697
 # ╟─b57195f9-c2a1-4676-96f9-faee84f7fc26
 # ╟─438d437e-7b00-4a13-8f8a-87fdc332a190
-# ╠═800fe4ba-e1a4-4e94-929f-7d66516e7bd6
+# ╟─800fe4ba-e1a4-4e94-929f-7d66516e7bd6
+# ╠═7d5a29c6-e71e-4ccb-a1c2-7fba663f038c
+# ╟─3364e9f6-b2af-45f1-b1f3-ef7b0cd4910a
 # ╟─26265a91-2c8e-46d8-9a87-a2d097e7433a
 # ╟─2eeb402e-c5f9-449c-af19-ff8f2e6c7246
 # ╠═6870ca6d-256d-4a38-970e-1c26ceba9fa4
