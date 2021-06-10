@@ -903,9 +903,17 @@ begin
 		θ = Vector{Vector}(undef, K)
 
 		# Priors
-		μ ~ filldist(truncated(TDist(3), 1, 6), 2)
+		μ ~ filldist(truncated(TDist(3), 1, 6), K)
+			
 		for i = 1:K
 			θ[i] ~ Dirichlet([0.5, 0.5])
+		end
+		
+		# Positive Ordered
+		if any(μ[i] > μ[i+1] for i in 1:(length(μ) - 1))
+        	# update the joint log probability of the samples
+        	# we set it to -Inf such that the samples are rejected
+        	Turing.@addlogprob!(-Inf)
 		end
 
 		# first observation
@@ -922,7 +930,7 @@ begin
 	composite_sampler = Gibbs(NUTS(10, 0.65, :μ, :θ),
 					PG(1, :s));
 
-	hmm_chain = sample(hmm(y, 2), composite_sampler, 50);
+	hmm_chain = sample(hmm(y, 2), composite_sampler, 20);
 	summarystats(hmm_chain[:, 1:6, :]) #only μ and θ
 end
 
