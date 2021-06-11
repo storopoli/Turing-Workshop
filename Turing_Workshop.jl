@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.14.7
+# v0.14.8
 
 using Markdown
 using InteractiveUtils
@@ -80,10 +80,10 @@ $(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/prof
 
 * **Jose Storopoli**, PhD 🌐 [storopoli.io](https://storopoli.io)
 * Associate Professor at [**Universidade Nove de Julho** (UNINOVE)](https://uninove.br)
-* Teach undergraduates [**Statistics** and **Machine Learning** (using Python 😓)](https://storopoli.io/ciencia-de-dados)
-* Teach graduate students [**Bayesian Statistics** (using `Stan`)](https://storopoli.io/Estatistica-Bayesiana) and **Scientific Computing** (using **Julia** 🚀)
+* Teach undergraduates [**Statistics** and **Machine Learning** (using Python](https://storopoli.io/ciencia-de-dados) 😓, but I'm starting ot migrate the content to [**Julia**](https://storopoli.io/Julia-ciencia-de-dados/) 🚀)
+* Teach graduate students [**Bayesian Statistics** (using `Stan`)](https://storopoli.io/Estatistica-Bayesiana) and [**Scientific Computing** (using **Julia**](https://storopoli.io/Computacao-Cientifica) 🚀)
 * I've made some `Turing` tutorials, you can check them out at [storopoli.io/Bayesian-Julia](https://storopoli.io/Bayesian-Julia)
-* You can find me on [Twitter](https://twitter.com/JoseStoropoli) (altough I've rarelly use it) or on [LinkedIn](https://www.linkedin.com/in/storopoli/)
+* You can find me on [Twitter](https://twitter.com/JoseStoropoli) (altough I rarelly use it) or on [LinkedIn](https://www.linkedin.com/in/storopoli/)
 """
 
 # ╔═╡ 1436305e-37d8-44f1-88d6-4de838580360
