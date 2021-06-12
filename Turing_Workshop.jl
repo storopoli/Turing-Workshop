@@ -194,6 +194,7 @@ We have [several samplers](https://turing.ml/dev/docs/using-turing/sampler-viz) 
 
 * `MH()`: **M**etropolis-**H**astings
 * `PG()`: **P**article **G**ibbs
+* `SMC()`: **S**equential **M**onte **C**arlo
 * `HMC()`: **H**amiltonian **M**onte **C**arlo
 * `HMCDA()`: **H**amiltonian **M**onte **C**arlo with Nesterov's **D**ual **A**veraging
 * `NUTS()`: **N**o-**U**-**T**urn **S**ampling
@@ -258,7 +259,7 @@ Let's revisit our biased-coin example:
 
 # ╔═╡ ab6c2ba6-4cd8-473a-88c6-b8d61551fb22
 begin
-	chain_coin_parallel = sample(coin(coin_flips), MH(), MCMCThreads(), 100, 2);
+	chain_coin_parallel = sample(coin(coin_flips), MH(), MCMCThreads(), 2_000, 2);
 	summarystats(chain_coin_parallel)
 end
 
@@ -289,7 +290,7 @@ This is quite easy in `Turing`. We need to create a *prior* distribution for our
 """
 
 # ╔═╡ 0fe83f55-a379-49ea-ab23-9defaab05890
-prior_chain_coin = sample(coin(coin_flips), Prior(), 100);
+prior_chain_coin = sample(coin(coin_flips), Prior(), 1_000);
 
 # ╔═╡ 3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
 md"""
@@ -320,7 +321,7 @@ We can inspect and plot our model's chains and its underlying parameters with [`
 1. **Inspecting Chains**
    * **Summary Statistics**: just do `summarystats(chain)`
    * **Quantiles** (Median, etc.): just do `quantile(chain)`
-   * What if I just want a **subset** of parameters?: just do `group(chain, :parameter)` or index with `chain[:, 1:6, :]`
+   * What if I just want a **subset** of parameters?: just do `group(chain, :parameter)` or index with `chain[:, 1:6, :]` or `chain[[:parameters,...]]`
 """
 
 # ╔═╡ 475be60f-1876-4086-9725-3bf5f52a3e43
@@ -351,7 +352,7 @@ plot(chain_coin_parallel; colordim=:parameter, dpi=300)
 # ╔═╡ 3d09c8c3-ce95-4f26-9136-fedd601e2a70
 md"""
 Second, we have several plots to choose from:
-* `traceplot()`: used for inspecting Markov chain **covergence**
+* `traceplot()`: used for inspecting Markov chain **convergence**
 * `meanplot()`: running average plots per interaction
 * `density()`: **density** plots
 * `histogram()`: **histogram** plots
@@ -432,6 +433,7 @@ Now a model *without* `for`-loops
 	β ~ filldist(Normal(), predictors)
 
 	#likelihood
+	# y .~ BernoulliLogit.(α .+ X * β)
 	y ~ arraydist(LazyArray(@~ BernoulliLogit.(α .+ X * β)))
 end;
 
@@ -498,10 +500,10 @@ md"""
 md"""
 We have mainly two [types of autodiff](https://en.wikipedia.org/wiki/Automatic_differentiation) (both uses the chain rule $\mathbb{R}^N \to \mathbb{R}^M$)
 
-* **Forward Autodiff**: The **independent** variable is fixed and differentiation is performed in a *forward* manner. Preffered when $N > M$
+* **Forward Autodiff**: The **independent** variable is fixed and differentiation is performed in a *forward* manner. Preffered when $N < M$
    * [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl): current (version 0.16) Turing's default, `:forwarddiff`
 
-* **Reverse Autodiff**: The **dependent** variable is fixed and differentiation is performed in a *backward* manner. Preffered when $N < M$
+* **Reverse Autodiff**: The **dependent** variable is fixed and differentiation is performed in a *backward* manner. Preffered when $N > M$
    * [`Tracker.jl`](https://github.com/FluxML/Tracker.jl): `:tracker`
    * [`Zygote.jl`](https://github.com/FluxML/Zygote.jl): `:zygote`
    * [`ReverseDiff.jl`](https://github.com/JuliaDiff/ReverseDiff.jl): `:reversediff`
@@ -579,7 +581,7 @@ Multilevel models generally fall into three approaches:
 
 2. **Random-slope model**: each group receives **different coefficients** for each (or a subset of) independent variable(s) in addition to a global intercept.
 
-3. **Random-intercept-slope model**: each group receives **both a different intercept and different coefficients(( for each independent variable in addition to a global intercept.
+3. **Random-intercept-slope model**: each group receives **both a different intercept and different coefficients** for each independent variable in addition to a global intercept.
 """
 
 # ╔═╡ 318697fe-1fbc-4ac3-a2aa-5ecf775072d4
@@ -621,7 +623,7 @@ end;
 
 # ╔═╡ 885fbe97-edd6-44d2-808d-8eeb1e9cb2b4
 md"""
-### Random-Slope Model
+#### Random-Slope Model
 
 The second approach is the **random-slope model** in which we specify a different slope for each group,
 in addition to the global intercept. These group-level slopes are sampled from a hyperprior.
@@ -656,7 +658,9 @@ end;
 
 # ╔═╡ f7971da6-ead8-4679-b8cf-e3c35c93e6cf
 md"""
-The third approach is the **random-slope model** in which we specify a different intercept
+#### Random-intercept-slope Model
+
+The third approach is the **random-intercept-slope model** in which we specify a different intercept
 and  slope for each group, in addition to the global intercept.
 These group-level intercepts and slopes are sampled from hyperpriors.
 
@@ -942,6 +946,11 @@ begin
 	hmm_chain = sample(hmm(y, 2), composite_sampler, 20);
 	summarystats(hmm_chain[:, 1:6, :]) #only μ and θ
 end
+
+# ╔═╡ cd410368-9022-4030-86a0-1d125e76bc62
+md"""
+> Obs: probably in the future we'll have better implementation for positive ordered constraints in `Turing`. It will reside in the [`Bijectors.jl`](https://github.com/TuringLang/Bijectors.jl) package.
+"""
 
 # ╔═╡ 9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
 md"""
@@ -1475,6 +1484,7 @@ end
 # ╟─247a02e5-8599-43fd-9ee5-32ba8b827477
 # ╟─6db0245b-0461-4db0-9462-7a5f80f7d589
 # ╠═b5a79826-151e-416e-b0a2-1a58eec9196c
+# ╟─cd410368-9022-4030-86a0-1d125e76bc62
 # ╟─9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
 # ╟─9b020402-ea15-4f52-9fff-c70d275b97ac
 # ╟─c81f4877-024f-4dc8-b7ce-e781ab6101f3
