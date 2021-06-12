@@ -69,8 +69,11 @@ md"""
 # Turing Workshop
 """
 
+# ╔═╡ 19c63110-4baa-4aff-ab91-46e5c149f3a2
+Resource("https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg", :width => 120, :display => "inline")
+
 # ╔═╡ dceb8312-230f-4e4b-9285-4e23f219b838
-Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/bayes-meme.jpg?raw=true", :width => 250, :align=>"center")
+Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/bayes-meme.jpg?raw=true", :width => 250, :display=>"center")
 
 # ╔═╡ cda7dc96-d983-4e31-9298-6148205b54b1
 md"""
@@ -201,22 +204,28 @@ Play around if you want. Choose your `sampler`:
 """
 
 # ╔═╡ cb168dc1-70e2-450f-b2cf-c8680251ab27
-@bind chosen_sampler Radio(["MH", "PG","SMC", "HMC", "HMCDA", "NUTS"], default = "MH")
+@bind chosen_sampler Radio([
+		"MH()",
+		"PG(Nₚ) - Number of Particles",
+		"SMC()",
+		"HMC(ϵ, L) - leaprog step size(ϵ) and number of leaprogs steps (L)",
+		"HMCDA(Nₐ, δ, λ) - Number of samples to use for adaptation (Nₐ), target acceptance ratio (δ), and target leapfrog length(λ)",
+		"NUTS(Nₐ, δ) - Number of samples to use for adaptation (Nₐ) and target acceptance ratio (δ)"], default = "MH()")
 
 # ╔═╡ 07d408cf-d202-40b2-90c2-5e8630549339
 begin
 	your_sampler = nothing
-	if chosen_sampler == "MH"
+	if chosen_sampler == "MH()"
 		your_sampler = MH()
-	elseif chosen_sampler == "PG"
+	elseif chosen_sampler == "PG(Nₚ) - Number of Particles"
 		your_sampler = PG(2)
-	elseif chosen_sampler == "SMC"
+	elseif chosen_sampler == "SMC()"
 		your_sampler = SMC()
-	elseif chosen_sampler == "HMC"
+	elseif chosen_sampler == "HMC(ϵ, L) - leaprog step size(ϵ) and number of leaprogs steps (L)"
 		your_sampler = HMC(0.05, 10)
-	elseif chosen_sampler == "HMCDA"
+	elseif chosen_sampler == "HMCDA(Nₐ, δ, λ) - Number of samples to use for adaptation (Nₐ), target acceptance ratio (δ), and target leapfrog length(λ)"
 		your_sampler = HMCDA(10, 0.65, 0.3)
-	elseif chosen_sampler == "NUTS"
+	elseif chosen_sampler == "NUTS(Nₐ, δ) - Number of samples to use for adaptation (Nₐ) and target acceptance ratio (δ)"
 		your_sampler = NUTS(10, 0.65)
 	end
 end
@@ -1347,6 +1356,15 @@ Neal, R. M. (2003). Slice Sampling. The Annals of Statistics, 31(3), 705–741.
 Tarek, M., Xu, K., Trapp, M., Ge, H., & Ghahramani, Z. (2020). DynamicPPL: Stan-like Speed for Dynamic Probabilistic Models. ArXiv:2002.02702 [Cs, Stat]. http://arxiv.org/abs/2002.02702
 """
 
+# ╔═╡ e66e67e8-8ac2-41a3-9926-3f0ac3b9c47d
+md"""
+## License
+
+This content is licensed under [Creative Commons Attribution-ShareAlike 4.0 Internacional](http://creativecommons.org/licenses/by-sa/4.0/).
+
+[![CC BY-SA 4.0](https://licensebuttons.net/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
+"""
+
 # ╔═╡ 634c9cc1-5a93-42b4-bf51-17dadfe488d6
 md"""
 ## Environment
@@ -1365,6 +1383,7 @@ end
 # ╔═╡ Cell order:
 # ╟─4af78efd-d484-4241-9d3c-97cc78e1dbd4
 # ╟─5df4d7d2-c622-11eb-3bbd-bff9668ee5e0
+# ╟─19c63110-4baa-4aff-ab91-46e5c149f3a2
 # ╟─dceb8312-230f-4e4b-9285-4e23f219b838
 # ╟─cda7dc96-d983-4e31-9298-6148205b54b1
 # ╟─1436305e-37d8-44f1-88d6-4de838580360
@@ -1495,6 +1514,7 @@ end
 # ╠═31b6d4ec-d057-44ca-875b-0c3257895dd3
 # ╠═8902a846-fbb9-42fc-8742-c9c4a84db52c
 # ╟─98ece9fe-dfcc-4dd8-bd47-049217d2afcf
+# ╟─e66e67e8-8ac2-41a3-9926-3f0ac3b9c47d
 # ╟─634c9cc1-5a93-42b4-bf51-17dadfe488d6
 # ╟─31161289-1d4c-46ba-8bd9-e687fb7da29e
 # ╟─50e01181-1911-426b-9228-4663a1297619
