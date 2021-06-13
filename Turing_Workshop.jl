@@ -89,6 +89,16 @@ $(Resource("https://github.com/storopoli/Turing-Workshop/blob/master/images/prof
 * You can find me on [Twitter](https://twitter.com/JoseStoropoli) (altough I rarelly use it) or on [LinkedIn](https://www.linkedin.com/in/storopoli/)
 """
 
+# ╔═╡ 2164bf58-75ff-470c-828c-b0165f0d980d
+md"""
+This workshop can be found in a CreativeCommons [YouTube Video](https://youtu.be/CKSxxJ7RdAU)
+"""
+
+# ╔═╡ 55777e4a-b197-4a61-8e57-6ae9792c0564
+html"""
+<iframe width="560" height="315" src="https://www.youtube.com/embed/CKSxxJ7RdAU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+"""
+
 # ╔═╡ 1436305e-37d8-44f1-88d6-4de838580360
 md"""
 ## Bayesian Statistics?!
@@ -963,7 +973,7 @@ end
 
 # ╔═╡ cd410368-9022-4030-86a0-1d125e76bc62
 md"""
-> Obs: probably in the future we'll have better implementation for positive ordered constraints in `Turing`. It will reside in the [`Bijectors.jl`](https://github.com/TuringLang/Bijectors.jl) package.
+> Obs: probably in the future we'll have better implementation for positive ordered constraints in `Turing`. It will reside in the [`Bijectors.jl`](https://github.com/TuringLang/Bijectors.jl) package. Actually check this [PR](https://github.com/TuringLang/Bijectors.jl/pull/186), it seems positive ordered is coming to `Turing`.
 """
 
 # ╔═╡ 9b0b62cb-2c61-4d47-a6c7-09c0c1a75a24
@@ -1409,6 +1419,8 @@ end
 # ╟─19c63110-4baa-4aff-ab91-46e5c149f3a2
 # ╟─dceb8312-230f-4e4b-9285-4e23f219b838
 # ╟─cda7dc96-d983-4e31-9298-6148205b54b1
+# ╟─2164bf58-75ff-470c-828c-b0165f0d980d
+# ╟─55777e4a-b197-4a61-8e57-6ae9792c0564
 # ╟─1436305e-37d8-44f1-88d6-4de838580360
 # ╟─08f508c4-233a-4bba-b313-b04c1d6c4a4c
 # ╟─868d8932-b108-41d9-b4e8-d62d31b5465d
