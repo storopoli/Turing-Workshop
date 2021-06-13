@@ -290,23 +290,37 @@ This is quite easy in `Turing`. We need to create a *prior* distribution for our
 """
 
 # ╔═╡ 0fe83f55-a379-49ea-ab23-9defaab05890
-prior_chain_coin = sample(coin(coin_flips), Prior(), 1_000);
+begin
+	prior_chain_coin = sample(coin(coin_flips), Prior(), 1_000)
+	summarystats(prior_chain_coin)
+end
 
 # ╔═╡ 3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
 md"""
 Now we can perform predictive checks using both the *prior* (`prior_chain_coin`) or *posterior* (`chain_coin`) distributions. To draw from the prior and posterior predictive distributions we instantiate a "predictive model", i.e. a `Turing` model but with the observations set to `missing`, and then calling `predict()` on the predictive model and the previously drawn samples.
 
 Let's do the *prior* predictive check:
-
-> The *posterior* predictive check is trivial, just do the same but with the posterior `chain`.
 """
 
 # ╔═╡ dd27ee5f-e442-42d7-a39b-d76328d2e59f
 begin
-	missing_data = Vector{Missing}(missing, 1); # vector of `missing`
+	missing_data = Vector{Missing}(missing, length(coin_flips)); # vector of `missing`
 	model_predict = coin(missing_data); # instantiate the "predictive model"
 	prior_check = predict(model_predict, prior_chain_coin);
-	summarystats(prior_check)
+	describe(DataFrame(summarystats(prior_check)))
+end
+
+# ╔═╡ c4808b43-bc0f-4254-abf1-1adc19135dc7
+md"""
+### 3.3 Posterior Predictive Checks
+
+The *posterior* predictive check is trivial, just do the same but with the posterior `chain_coin`:
+"""
+
+# ╔═╡ 1773d8c3-4651-4128-9442-e7c858bc4a43
+begin
+	posterior_check = predict(model_predict, chain_coin);
+	describe(DataFrame(summarystats(posterior_check)))
 end
 
 # ╔═╡ 5674f7aa-3205-47c7-8367-244c6419ce69
@@ -1421,6 +1435,8 @@ end
 # ╠═0fe83f55-a379-49ea-ab23-9defaab05890
 # ╟─3aa95b4b-aaf8-45cf-8bc5-05b65b4bcccf
 # ╠═dd27ee5f-e442-42d7-a39b-d76328d2e59f
+# ╟─c4808b43-bc0f-4254-abf1-1adc19135dc7
+# ╠═1773d8c3-4651-4128-9442-e7c858bc4a43
 # ╟─5674f7aa-3205-47c7-8367-244c6419ce69
 # ╟─83cc80c1-d97e-4b82-872e-e5493d2b62ab
 # ╠═475be60f-1876-4086-9725-3bf5f52a3e43
