@@ -13,7 +13,7 @@ Bayesian for Everyone!
 
 </div>
 
-This is a [**Turing**](http://turing.ml/) Workshop on how to do **Bayesian Statistics**. The Workshop is heavily based on tutorials available at [storopoli.io/Bayesian-Julia](https://storopoli.io/Bayesian-Julia).
+This is a [**Turing**](http://turing.ml/) Workshop on how to do **Bayesian Statistics**. The Workshop is heavily based on tutorials available at [storopoli.io/Bayesian-Julia](https://storopoli.io/Bayesian-Julia). If you want you can see the [YouTube video](https://youtu.be/CKSxxJ7RdAU) from the recorded workshop at [Stuttgart Julia Programming Language Meetup Group](https://www.meetup.com/stuttgart-julia-programming-language-meetup-gruppe/).
 
 **Bayesian statistics** is an approach to inferential statistics based on Bayes' theorem, where available knowledge about parameters in a statistical model is updated with the information in observed data. The background knowledge is expressed as a prior distribution and combined with observational data in the form of a likelihood function to determine the posterior distribution. The posterior can also be used for making predictions about future events.
 
