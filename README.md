@@ -34,7 +34,7 @@ $$\underbrace{P(\theta \mid y)}_{\text{Posterior}} = \frac{\overbrace{P(y \mid  
 
 ## Julia
 
-[**Julia**](https://www.julialang.org) is a fast dynamic-typed language that just-in-time (JIT) compiles into native code using LLVM. It ["runs like C but reads like Python"](https://www.nature.com/articles/d41586-019-02310-3), meaning that is *blazing* fast, easy to prototype and read/write code. It is multi-paradigm, combining features of imperative, functional, and object-oriented programming. I won't cover Julia basics and any sort of data manipulation using Julia in the tutorials, instead please take a look into the following resources which covers most of the introduction to Julia and how to work with tabular data in Julia:
+[**Julia**](https://www.julialang.org) is a fast dynamic-typed language that just-in-time (JIT) compiles into native code using LLVM. It ["runs like C but reads like Python"](https://www.nature.com/articles/d41586-019-02310-3), meaning that is *blazing* fast, easy to prototype and read/write code. It is multi-paradigm, combining features of imperative, functional, and object-oriented programming. I won't cover Julia basics and any sort of data manipulation using Julia in the tutorials, instead please take a look into the following resources which cover most of the introduction to Julia and how to work with tabular data in Julia:
 
 * [**Julia Documentation**](https://docs.julialang.org/): Julia documentation is a very friendly and well-written resource that explains the basic design and functionality of the language.
 * [**Thinking Julia**](https://benlauwens.github.io/ThinkJulia.jl/latest/book.html): introductory beginner-friendly book that explains the main concepts and functionality behind the Julia language.
